@@ -7,7 +7,7 @@ export default function UserProfile() {
         className="w-10 h-10 rounded-full bg-gray-800"
       />
       <div className="flex flex-col">
-        <span className="text-sm font-semibold text-white">You</span>
+        <span className="text-sm font-semibold black:text-text-main">You</span>
         <span className="text-xs text-gray-400">rey@pylearn.studio</span>
       </div>
     </div>

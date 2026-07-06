@@ -1,15 +1,16 @@
 import TopHeader from '../components/MainArea/TopHeader';
-import TaskGrid from '../components/MainArea/TaskGrid';
+import TaskGrid from '../components/MainArea/Grid/TaskGrid';
 import RightSidebar from '../components/RightPanel/RightSidebar';
 
-export default function DashboardPage() {
+export default function Dashboard() {
   return (
-    <div className="flex h-full p-6 gap-6">
+    
+    <div className="flex h-full gap-6">
       
       {/* Coloana Centrală */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 p-6 flex flex-col">
         <TopHeader />
-        <TaskGrid />
+        <TaskGrid numeTema='tema 1'/>
       </div>
       
       {/* Coloana din Dreapta */}

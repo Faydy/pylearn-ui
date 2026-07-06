@@ -1,3 +1,4 @@
+
 export default function RightSidebar() {
-  return <div className="bg-[#2a2a2a] h-full rounded-2xl p-4">Panou Dreapta</div>;
+  return <div className="h-full p-4 border border-border">Panou Dreapta</div>;
 }

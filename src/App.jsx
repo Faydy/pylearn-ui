@@ -1,20 +1,22 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import DashboardLayout from './layouts/DashboardLayout';
-import DashboardPage from './pages/DashboardPage';
+import MainLayout from './layouts/MainLayout';
+import Dashboard from './pages/Dashboard';
+import Teorie from './pages/Teorie';
+import Probleme from './pages/Probleme'
+import Scoruri from './pages/Scoruri'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        
-        {/* Părintele tuturor paginilor este Layout-ul */}
-        <Route path="/" element={<DashboardLayout />}>
-          
-          {/* Când ești exact pe "/", se va încărca DashboardPage în interiorul Outlet-ului */}
-          <Route index element={<DashboardPage />} />
-          
+
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/teorie" element={<Teorie />} />
+          <Route path="/probleme" element={<Probleme />} />
+          <Route path="/scoruri" element={<Scoruri />} />
         </Route>
-        
+
       </Routes>
     </BrowserRouter>
   );

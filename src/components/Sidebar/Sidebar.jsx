@@ -1,19 +1,19 @@
-import { UNSAFE_mapRouteProperties } from "react-router-dom";
 import UserProfile from "./UserProfile";
 import SidebarComponent from "./SidebarComponent";
-import { LayoutDashboard, BookOpen, Trophy, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Trophy, Settings, Terminal } from 'lucide-react';
+import Logo from "./Logo";
 export default function Sidebar() {
   return (
-    <div className="h-full flex flex-col">
-      <UserProfile></UserProfile>
-      <div className="flex flex-col gap-2 mt-4">
+    <div className="h-full dark:bg-sidebar border-r-1 border-border flex flex-col items-center justify-center">
+        <Logo />
+      <div className="flex flex-col p-4 text-xs w-full">
         <SidebarComponent name="Dashboard" icon={LayoutDashboard} />
-        <SidebarComponent name="Teorie" icon={BookOpen} />
-        <SidebarComponent name="Scoruri" icon={Trophy} />
+        <SidebarComponent name="Probleme" icon={Terminal} to="/probleme" />
+        <SidebarComponent name="Teorie" icon={BookOpen} to="/teorie" />
+        <SidebarComponent name="Scoruri" icon={Trophy} to="/scoruri" />
       </div>
-      <div className="mt-auto">
-        <SidebarComponent name="Setări" icon={Settings} className="mt-2" hasBorder={false}/>
-
+      <div className="mt-auto border-t border-border">
+        <UserProfile/>
       </div>
     </div>
   );

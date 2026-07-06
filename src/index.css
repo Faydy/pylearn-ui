@@ -1,1 +1,16 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-accent: #E8B339;
+  --color-accent-dim: #4A3F1E;
+  --color-text-main: #E6EDF3; /* L-am redenumit din 'text' pentru a evita un conflict (text-text) */
+  --color-muted: #7D8B99;
+  --color-sidebar: #141B22;
+  --color-sidebar-hover: #1B242D;
+  --color-border: #26313C;
+  --color-background: #0D1117;
+  --color-easy: #3FB950;
+  --color-medium: #D29922;
+  --color-hard: #F85149;
+}
