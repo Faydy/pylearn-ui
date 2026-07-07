@@ -17,7 +17,7 @@ export default function TemaComponent({
     }
 
     return(
-<div className="bg-ink border border-border p-6 rounded-2xl flex flex-col justify-between hover:border-muted transition-all">
+        <div className="bg-ink border border-border p-6 rounded-2xl flex flex-col justify-between hover:border-muted transition-all">
           <div>
             <div className="flex items-center gap-2 text-muted font-bold mb-2">
               <Icon className="w-5 h-5" />

@@ -2,15 +2,69 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-accent: #E8B339;
-  --color-accent-dim: #4A3F1E;
-  --color-text-main: #E6EDF3; /* L-am redenumit din 'text' pentru a evita un conflict (text-text) */
-  --color-muted: #7D8B99;
-  --color-sidebar: #141B22;
-  --color-sidebar-hover: #1B242D;
-  --color-border: #26313C;
-  --color-background: #0D1117;
-  --color-easy: #3FB950;
-  --color-medium: #D29922;
-  --color-hard: #F85149;
+  --font-sans: "Outfit", sans-serif;
+  
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@theme {
+  /* =========================================
+     1. CULORILE DE BRAND ȘI ACCENT
+     ========================================= */
+  
+  --color-accent: #E8B339; 
+  /* 🟡 Auriu/Galben. Culoarea principală a platformei. 
+     CÂND SĂ O FOLOSEȘTI: Butoane principale ("Rezolvă", "Trimite"), bara de progres pentru nivel, steluțe/puncte XP, iconița paginii active din meniul lateral. */
+  
+  --color-accent-dim: #4A3F1E; 
+  /* 🟤 Auriu foarte stins / efect de transparență. 
+     CÂND SĂ O FOLOSEȘTI: Ca fundal (background) pentru un element de accent pe care vrei să-l scoți în evidență fin. De exemplu, un badge cu "Ofertă" sau ca fundal când dai hover pe un text auriu. */
+
+  /* =========================================
+     2. TIPOGRAFIE (TEXT)
+     ========================================= */
+
+  --color-text-main: #E6EDF3; 
+  /* ⚪ Alb ușor stins. 
+     CÂND SĂ O FOLOSEȘTI: Pentru 90% din textul important. Titluri de carduri, textul problemelor, numele utilizatorului. Este mai blând pentru ochi decât un alb pur (#FFFFFF) pe un fundal negru. */
+  
+  --color-muted: #7D8B99; 
+  /* 🔘 Gri-albăstrui deschis. 
+     CÂND SĂ O FOLOSEȘTI: Text secundar. Descrierile subțiri sub titluri, estimări de timp ("10 min est."), procentele neimportante, textul ajutător dintr-o căsuță de căutare (placeholder) și iconițele inactive. */
+
+  /* =========================================
+     3. STRUCTURA PAGINII (FUNDALURI ȘI BORDURI)
+     ========================================= */
+
+  --color-background: #0D1117; 
+  /* 🖤 Negru abisal / Baza. 
+     CÂND SĂ O FOLOSEȘTI: Fundalul general al aplicației (spațiul mort dintre carduri, zona principală de conținut a paginii de Dashboard). */
+
+  --color-sidebar: #141B22; 
+  /* ⬛ Gri foarte închis (o nuanță mai deschisă ca fundalul). 
+     CÂND SĂ O FOLOSEȘTI: Fundalul pentru componentele care stau "peste" fundalul principal. Meniul lateral din stânga, fundalul cardurilor de pe dashboard, bara de navigare de sus. */
+  
+  --color-sidebar-hover: #1B242D; 
+  /* 🌑 Gri interactiv. 
+     CÂND SĂ O FOLOSEȘTI: Culoarea de interacțiune. O pui pe `hover:bg-sidebar-hover` când treci cu mouse-ul peste un buton din meniu sau peste un rând dintr-un tabel. */
+  
+  --color-border: #26313C; 
+  /* 🔵 Gri mediu vizibil. 
+     CÂND SĂ O FOLOSEȘTI: Pentru liniile subțiri care delimitează elementele. Conturul (border-ul) cardurilor, linia care desparte meniul lateral de restul paginii, conturul unui input de text. */
+
+  /* =========================================
+     4. FEEDBACK VIZUAL (GAMIFICATION & REZULTATE)
+     ========================================= */
+
+  --color-easy: #3FB950; 
+  /* 🟢 Verde. 
+     CÂND SĂ O FOLOSEȘTI: Eticheta pentru probleme "Ușor", mesaje de succes ("Cod rulat cu succes!"), iconițe cu bifă pentru lecții terminate. */
+  
+  --color-medium: #D29922; 
+  /* 🟠 Portocaliu/Auriu. 
+     CÂND SĂ O FOLOSEȘTI: Eticheta pentru probleme "Mediu", avertismente ("Timpul aproape a expirat"), sau un streak de activitate. */
+  
+  --color-hard: #F85149; 
+  /* 🔴 Roșu. 
+     CÂND SĂ O FOLOSEȘTI: Eticheta pentru probleme "Greu", erori de compilare în terminalul Python, mesaje de tipul "Răspuns greșit". */
 }
