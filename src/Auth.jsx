@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { supabase } from './supabaseClient';
 import { Mail, Lock, Loader2, FolderGit, Folder } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -19,6 +21,7 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        navigate('/creare-profil');
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
@@ -39,8 +42,7 @@ export default function Auth() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
-        // Opțional: poți forța întoarcerea pe o anumită pagină după logare
-        // options: { redirectTo: 'http://localhost:5173/' }
+        options: { redirectTo: '${window.location.origin}/creare-profil' }
       });
       if (error) throw error;
     } catch (error) {

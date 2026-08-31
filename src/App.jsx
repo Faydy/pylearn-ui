@@ -9,7 +9,13 @@ import Teorie from './pages/Teorie';
 import Probleme from './pages/Probleme';
 import Scoruri from './pages/Scoruri';
 import Profile from './pages/Profile';
+import RezolvareProblema from './pages/RezolvareProblema';
+import Capitole from './pages/Capitole';
+import ToateProblemele from './pages/ToateProblemele';
+import ProblemeSectiune from './pages/ProblemeSectiune';
+
 import Auth from './Auth';
+import CreareProfil from './CreareProfil';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -42,14 +48,20 @@ export default function App() {
         
         {/* Ruta de Login este acum independentă. Dacă e logat deja, îl trimitem pe Home */}
         <Route path="/login" element={session ? <Navigate to="/" replace /> : <Auth />} />
+        <Route path="/creare-profil" element={session ? <CreareProfil /> : <Navigate to="/login" replace />} />
 
         {/* Toate rutele din interiorul aplicației (care au meniul lateral) */}
         <Route element={<MainLayout />}>
-          
           {/* Acestea sunt Publice (merg și fără cont) */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/teorie" element={<Teorie />} />
+
           <Route path="/probleme" element={<Probleme />} />
+          <Route path="/probleme/clasa/:gradeId" element={<Capitole />} />
+          <Route path="/probleme/toate" element={<ToateProblemele />} />
+          <Route path="/probleme/clasa/:gradeId/sectiune/:sectionName" element={<ProblemeSectiune />} />
+
+          <Route path="/rezolvare/:id" element={<RezolvareProblema />} />
           <Route path="/scoruri" element={<Scoruri />} />
           
           {/* Profilul este Protejat (dacă nu e logat, îl trimitem să se logheze) */}
