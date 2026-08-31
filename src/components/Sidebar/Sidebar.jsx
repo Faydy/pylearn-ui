@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient'; // Asigură-te că drumul e corect
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../AuthContext";
 
 // Componentele tale
 import UserProfile from "./UserProfile";
@@ -8,24 +7,10 @@ import SidebarComponent from "./SidebarComponent";
 import Logo from "./Logo";
 
 // Iconițele (am adăugat LogIn pentru butonul de conectare)
-import { LayoutDashboard, BookOpen, Trophy, Settings, Terminal, LogIn } from 'lucide-react';
+import { LayoutDashboard, BookOpen, ClipboardList, School, Trophy, Terminal, LogIn } from 'lucide-react';
 
 export default function Sidebar() {
-  // 1. Definim starea care ține minte dacă e logat sau nu
-  const [session, setSession] = useState(null);
-
-  // 2. Verificăm sesiunea direct din Supabase
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user } = useAuth();
 
   return (
     // AM CORECTAT AICI: Am transformat NavLink-ul principal într-un <aside>
@@ -40,12 +25,14 @@ export default function Sidebar() {
         <SidebarComponent name="Dashboard" icon={LayoutDashboard} to="/" />
         <SidebarComponent name="Probleme" icon={Terminal} to="/probleme" />
         <SidebarComponent name="Teorie" icon={BookOpen} to="/teorie" />
+        <SidebarComponent name="Clase" icon={School} to="/clase" />
+        <SidebarComponent name="Teme" icon={ClipboardList} to="/teme" />
         <SidebarComponent name="Scoruri" icon={Trophy} to="/scoruri" />
       </div>
       
       {/* Partea de Jos: Autentificare / Profil */}
       <div className="mt-auto border-t border-border w-full">
-        {session ? (
+        {user ? (
           // AM MODIFICAT AICI: Am învelit UserProfile într-un NavLink
           <NavLink 
             to="/profil" 

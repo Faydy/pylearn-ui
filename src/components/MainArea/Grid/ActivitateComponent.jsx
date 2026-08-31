@@ -1,63 +1,104 @@
-import { Flame, Loader2 } from "lucide-react";
-import { supabase } from "../../../supabaseClient";
-import { useEffect, useState } from "react";
-export default function ActivitateComponent(){
-    const [activitateData, setActivitateData] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+import { Flame, Loader2, LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../../AuthContext';
+import { supabase } from '../../../supabaseClient';
 
-    useEffect(() => {
-      const fetchActiviate = async () => {
-        try{
-          const {data : {session}, error: sessionError} = await supabase.auth.getSession();
-          if(sessionError)
-            throw sessionError;
+export default function ActivitateComponent() {
+  const { user, loading: authLoading } = useAuth();
+  const [activityData, setActivityData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-          const currentUserId = session?.user?.id;
-          if(!currentUserId) return;
+  useEffect(() => {
+    let isCurrent = true;
 
-          const {data, error} = await supabase.from('profiles').select('total_xp, current_streak').eq('id', currentUserId).single();
+    const fetchActivity = async () => {
+      if (!user) {
+        setActivityData(null);
+        setIsLoading(false);
+        return;
+      }
 
-          if(error) throw error;
-          setActivitateData(data);
-        } catch (error){
-          console.log("Eroare la incarcarea activitatii:", error);
-        } finally{
-          setIsLoading(false);
-        }
-      };
-      fetchActiviate();
-    } , []);
+      setIsLoading(true);
 
-    if (isLoading) {
-        return (
-            <div className="bg-ink border border-border p-6 rounded-2xl h-full flex justify-center items-center">
-                <Loader2 className="w-6 h-6 animate-spin text-muted" />
-            </div>
-        );
-    }
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('total_xp, current_streak')
+          .eq('id', user.id)
+          .single();
 
-    return(
-    <div className="bg-ink border border-border p-6 rounded-2xl flex flex-col justify-between hover:border-muted transition-all">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-xl font-bold text-text-main mb-1">Activitate</h3>
-              <p className="text-muted text-sm">Ține-o tot așa, ești pe drumul cel bun!</p>
-            </div>
-            <div className="bg-background p-3 rounded-full border border-border">
-              <Flame className="w-6 h-6 text-[#ff8a00]" /> {/* Culoare foc */}
-            </div>
+        if (error) throw error;
+        if (isCurrent) setActivityData(data);
+      } catch (error) {
+        console.error('Eroare la încărcarea activității:', error.message);
+        if (isCurrent) setActivityData(null);
+      } finally {
+        if (isCurrent) setIsLoading(false);
+      }
+    };
+
+    fetchActivity();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [user]);
+
+  if (authLoading || (user && isLoading)) {
+    return (
+      <div className="flex h-full items-center justify-center rounded-2xl border border-border bg-ink p-6">
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-[200px] flex-col justify-between rounded-2xl border border-border bg-ink p-6 transition-all hover:border-muted">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="mb-1 text-xl font-bold text-text-main">Activitate</h3>
+            <p className="text-sm text-muted">Loghează-te pentru a-ți începe călătoria.</p>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4 mt-6">
-            <div className="bg-background border border-border rounded-xl p-4 text-center">
-              <span className="block text-3xl font-bold text-text-main">{activitateData?.current_streak || 0}</span>
-              <span className="text-xs text-muted uppercase font-bold tracking-wider">Zile Streak</span>
-            </div>
-            <div className="bg-background border border-border rounded-xl p-4 text-center">
-              <span className="block text-3xl font-bold text-accent">{activitateData?.total_xp || 0}</span>
-              <span className="text-xs text-muted uppercase font-bold tracking-wider">Puncte Total</span>
-            </div>
+          <div className="rounded-full border border-border bg-background p-3">
+            <Flame className="h-6 w-6 text-[#ff8a00]" />
           </div>
         </div>
+
+        <Link
+          to="/login"
+          className="mt-6 flex w-fit items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-bold text-accent transition-colors hover:bg-accent hover:text-ink"
+        >
+          <LogIn className="h-4 w-4" />
+          Intră în cont
+        </Link>
+      </div>
     );
+  }
+
+  return (
+    <div className="flex flex-col justify-between rounded-2xl border border-border bg-ink p-6 transition-all hover:border-muted">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="mb-1 text-xl font-bold text-text-main">Activitate</h3>
+          <p className="text-sm text-muted">Ține-o tot așa, ești pe drumul cel bun!</p>
+        </div>
+        <div className="rounded-full border border-border bg-background p-3">
+          <Flame className="h-6 w-6 text-[#ff8a00]" />
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-4">
+        <div className="rounded-xl border border-border bg-background p-4 text-center">
+          <span className="block text-3xl font-bold text-text-main">{activityData?.current_streak || 0}</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-muted">Zile Streak</span>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4 text-center">
+          <span className="block text-3xl font-bold text-accent">{activityData?.total_xp || 0}</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-muted">Puncte Total</span>
+        </div>
+      </div>
+    </div>
+  );
 }

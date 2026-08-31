@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom"; // <-- Am adăugat use
 import { supabase } from "../supabaseClient";
 import { Loader2, Code2, ChevronRight, Star, ArrowLeft, Search, Hash } from "lucide-react"; // <-- Am adăugat Hash
 import TopHeader from "../components/MainArea/TopHeader";
+import { normalizeSearchText } from "../utils/search";
 
 export default function ToateProblemele() {
     // 1. Extragem parametrul 'categorie' din adresa URL
@@ -61,8 +62,9 @@ export default function ToateProblemele() {
         }
     };
 
-    const filteredProbleme = probleme.filter(p => 
-        p.title.toLowerCase().includes(searchQuery.toLowerCase())
+    const normalizedSearchQuery = normalizeSearchText(searchQuery);
+    const filteredProbleme = probleme.filter(p =>
+        normalizeSearchText(p.title).includes(normalizedSearchQuery)
     );
 
     // Titlu și mesaj dinamic pentru antet

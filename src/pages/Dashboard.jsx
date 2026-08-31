@@ -15,7 +15,7 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
         <TopHeader />
         <div className="p-6 flex flex-col flex-1">
-          <TaskGrid numeTema='tema 1'/>
+          <TaskGrid />
           <Continue />
           <ListaProbleme/>
         </div>

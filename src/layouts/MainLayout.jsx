@@ -1,16 +1,15 @@
 import { Outlet } from "react-router-dom";
+import MobileNavigation from "../components/Sidebar/MobileNavigation";
 import Sidebar from "../components/Sidebar/Sidebar";
-import { useState, useEffect } from "react";
 
 export default function MainLayout() {
-    const [isDark, setIsDark] = useState(true);
-
   return (
-    <div className="flex h-screen w-full bg-[#fff] text-gray-700 dark:bg-background dark:text-text-main overflow-hidden font-sans">
-      <div className="w-64 flex-shrink-0">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#fff] font-sans text-gray-700 dark:bg-background dark:text-text-main lg:flex-row">
+      <div className="hidden w-64 flex-shrink-0 lg:block">
         <Sidebar />
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <MobileNavigation />
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <Outlet />
       </div>
       

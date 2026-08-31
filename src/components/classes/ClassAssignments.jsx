@@ -1,0 +1,11 @@
+import { ArrowRight, CalendarClock, ClipboardList, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { formatDueAt } from '../../utils/assignments';
+
+export default function ClassAssignments({ assignments, loading, error, teacherView }) {
+  if (loading) return <div className="flex justify-center rounded-2xl border border-border bg-ink p-10"><Loader2 className="h-7 w-7 animate-spin text-accent" /></div>;
+  if (error) return <p className="rounded-2xl border border-hard/20 bg-hard/10 p-5 text-sm text-hard">{error}</p>;
+  if (assignments.length === 0) return <div className="rounded-2xl border border-dashed border-border bg-ink p-10 text-center"><ClipboardList className="mx-auto h-8 w-8 text-muted" /><h2 className="mt-4 text-xl font-bold text-text-main">Nu există teme momentan.</h2><p className="mt-2 text-sm text-muted">{teacherView ? 'Creează o temă din pagina Teme pentru a o distribui elevilor.' : 'Temele publicate de profesor vor apărea aici.'}</p><Link to="/teme" className="mt-5 inline-flex items-center gap-2 font-bold text-accent transition-colors hover:text-text-main">Vezi temele <ArrowRight className="h-4 w-4" /></Link></div>;
+
+  return <div className="grid gap-4">{assignments.map((assignment) => <article key={assignment.id} className="rounded-2xl border border-border bg-ink p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><div className="flex items-center gap-2 text-sm font-bold text-accent"><ClipboardList className="h-4 w-4" />{assignment.published ? 'Publicată' : 'Draft'}</div><h2 className="mt-2 text-lg font-bold text-text-main">{assignment.title}</h2>{assignment.description && <p className="mt-2 text-sm text-muted">{assignment.description}</p>}{assignment.due_at && <p className="mt-3 flex items-center gap-2 text-sm text-muted"><CalendarClock className="h-4 w-4" />Deadline: {formatDueAt(assignment.due_at)}</p>}</div><Link to={`/teme/${assignment.id}`} className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-bold text-text-main transition-colors hover:border-accent hover:text-accent">Deschide <ArrowRight className="h-4 w-4" /></Link></div></article>)}</div>;
+}

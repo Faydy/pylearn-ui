@@ -1,17 +1,27 @@
 import { useAuth } from "../../AuthContext";
+import { getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../../utils/profile';
+
 export default function UserProfile() {
-  const {profile, user, loading} = useAuth();
-  if(profile)
+  const { profile, user, loading } = useAuth();
+
+  if (!user) {
+    return null;
+  }
+
+  const displayName = profile?.username || (loading ? 'Se încarcă...' : 'Utilizator');
+  const avatarSeed = user.user_metadata?.avatar || profile?.username || user.email || 'user';
+  const role = PROFILE_ROLES.find((item) => item.value === normalizeProfileRole(profile?.role || user.user_metadata?.role));
+
   return (
     <div className="flex mt-2 items-center gap-3 p-2 rounded-xl hover:bg-[#2c2c2c] transition-colors cursor-pointer">
       <img 
-        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
+        src={getAvatarUrl(avatarSeed)}
         alt="Avatar" 
         className="w-10 h-10 rounded-full bg-gray-800"
       />
       <div className="flex flex-col">
-        <span className="text-sm font-semibold black:text-text-main">{profile?.username}</span>
-        <span className="text-xs text-gray-400">{user?.email}</span>
+        <span className="text-sm font-semibold black:text-text-main">{displayName}</span>
+        <span className="text-xs text-gray-400">{role?.label || user.email}</span>
       </div>
     </div>
   );

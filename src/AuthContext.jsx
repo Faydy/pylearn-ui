@@ -4,61 +4,87 @@ import { supabase } from './supabaseClient';
 // Creăm Contextul
 const AuthContext = createContext({});
 
+async function fetchProfileRecord(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 // Aceasta este componenta care va "îmbrățișa" toată aplicația
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null); // <-- NOU: Aici salvăm datele din tabelul profiles
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Funcție separată pentru a aduce profilul
-    const fetchProfile = async (userId) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (!error && data) {
-        setProfile(data);
-      } else {
+    let isMounted = true;
+
+    const syncAuthState = async (session) => {
+      if (!isMounted) return;
+
+      setLoading(true);
+      setUser(session?.user || null);
+
+      if (!session?.user) {
         setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const nextProfile = await fetchProfileRecord(session.user.id);
+        if (isMounted) setProfile(nextProfile);
+      } catch (error) {
+        console.error('Eroare la încărcarea profilului:', error.message);
+        if (isMounted) setProfile(null);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
-    // Verificăm sesiunea curentă la încărcarea paginii
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      
-      // Dacă avem un user logat, îi aducem și profilul
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
-      
-      setLoading(false);
+      await syncAuthState(session);
     };
-    
+
     checkSession();
 
-    // Ascultăm schimbările (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user || null);
-      
-      // Când cineva se loghează, aducem profilul. Când dă logout, îl ștergem.
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncAuthState(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
+  const refreshAuth = async () => {
+    const { data: { user: refreshedUser }, error } = await supabase.auth.getUser();
+    if (error) throw error;
+
+    setUser(refreshedUser || null);
+
+    if (!refreshedUser) {
+      setProfile(null);
+      return null;
+    }
+
+    const nextProfile = await fetchProfileRecord(refreshedUser.id);
+    setProfile(nextProfile);
+    return refreshedUser;
+  };
+
   return (
-    // NOU: Am adăugat `profile` în valoarea exportată
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

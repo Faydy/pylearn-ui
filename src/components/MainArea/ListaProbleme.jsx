@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 export default function ListaProbleme() {
   const [problems, setProblems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
     const fetchRecomandari = async () => {
@@ -14,22 +15,27 @@ export default function ListaProbleme() {
         if (sessionError) throw sessionError;
         
         const userId = session?.user?.id;
-        if (!userId) return;
+        let userGradeId;
+        let solvedIds = [];
 
-        // 1. Clasa utilizatorului
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('grade_id')
-          .eq('id', userId)
-          .single();
-        const userGradeId = profileData?.grade_id;
+        if (userId) {
+          // 1. Clasa utilizatorului
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('grade_id')
+            .eq('id', userId)
+            .single();
+          userGradeId = profileData?.grade_id;
 
-        // 2. Problemele deja rezolvate
-        const { data: solvedData } = await supabase
-          .from('submissions')
-          .select('problem_id')
-          .eq('user_id', userId);
-        const solvedIds = solvedData?.map(s => s.problem_id) || [];
+          // 2. Problemele deja rezolvate
+          const { data: solvedData } = await supabase
+            .from('submissions')
+            .select('problem_id')
+            .eq('user_id', userId);
+          solvedIds = solvedData?.map(s => s.problem_id) || [];
+        } else {
+          setIsGuest(true);
+        }
 
         // 3. Aducem 5 probleme nerezolvate, extrăgând și numele secțiunii din capitol
         let query = supabase
@@ -81,8 +87,8 @@ export default function ListaProbleme() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4 px-2">
           <div>
-            <h3 className="text-xl font-bold text-text-main">Probleme Recomandate</h3>
-            <p className="text-sm text-muted">Exersează conceptele învățate recent.</p>
+            <h3 className="text-xl font-bold text-text-main">{isGuest ? 'Probleme de explorat' : 'Probleme Recomandate'}</h3>
+            <p className="text-sm text-muted">{isGuest ? 'Începe să exersezi, fără să creezi un cont.' : 'Exersează conceptele învățate recent.'}</p>
           </div>
         </div>
         <div className="bg-ink border border-border rounded-2xl flex justify-center items-center py-12">
@@ -98,8 +104,8 @@ export default function ListaProbleme() {
       {/* Header-ul Listei */}
       <div className="flex items-center justify-between mb-4 px-2">
         <div>
-          <h3 className="text-xl font-bold text-text-main">Probleme Recomandate</h3>
-          <p className="text-sm text-muted">Exersează conceptele învățate recent.</p>
+          <h3 className="text-xl font-bold text-text-main">{isGuest ? 'Probleme de explorat' : 'Probleme Recomandate'}</h3>
+          <p className="text-sm text-muted">{isGuest ? 'Începe să exersezi, fără să creezi un cont.' : 'Exersează conceptele învățate recent.'}</p>
         </div>
       </div>
 
@@ -107,7 +113,7 @@ export default function ListaProbleme() {
       <div className="bg-ink border border-border rounded-2xl overflow-hidden flex flex-col">
         {problems.length === 0 ? (
           <div className="p-8 text-center text-muted">
-            Nu mai ai probleme nerezolvate la acest nivel. Ești un expert!
+            {isGuest ? 'Nu există probleme disponibile momentan.' : 'Nu mai ai probleme nerezolvate la acest nivel. Ești un expert!'}
           </div>
         ) : (
           problems.map((problem, index) => (

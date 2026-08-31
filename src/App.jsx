@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from './AuthContext';
 
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
@@ -13,28 +12,20 @@ import RezolvareProblema from './pages/RezolvareProblema';
 import Capitole from './pages/Capitole';
 import ToateProblemele from './pages/ToateProblemele';
 import ProblemeSectiune from './pages/ProblemeSectiune';
+import Teme from './pages/Teme';
+import TemaDetalii from './pages/TemaDetalii';
+import EditorTema from './pages/EditorTema';
+import Clase from './pages/Clase';
+import DetaliiClasa from './pages/DetaliiClasa';
 
 import Auth from './Auth';
 import CreareProfil from './CreareProfil';
+import { isProfileComplete } from './utils/profile';
 
 export default function App() {
-  const [session, setSession] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const { user, profile, loading } = useAuth();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsInitializing(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (isInitializing) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-accent animate-spin" />
@@ -42,17 +33,21 @@ export default function App() {
     );
   }
 
+  const profileComplete = isProfileComplete(profile, user);
+  const authenticatedDestination = profileComplete ? '/' : '/creare-profil';
+
   return (
     <BrowserRouter>
       <Routes>
         
-        {/* Ruta de Login este acum independentă. Dacă e logat deja, îl trimitem pe Home */}
-        <Route path="/login" element={session ? <Navigate to="/" replace /> : <Auth />} />
-        <Route path="/creare-profil" element={session ? <CreareProfil /> : <Navigate to="/login" replace />} />
+        <Route path="/login" element={user ? <Navigate to={authenticatedDestination} replace /> : <Auth />} />
+        <Route
+          path="/creare-profil"
+          element={user ? (profileComplete ? <Navigate to="/" replace /> : <CreareProfil />) : <Navigate to="/login" replace />}
+        />
 
-        {/* Toate rutele din interiorul aplicației (care au meniul lateral) */}
+        {/* Pagini publice: pot fi explorate și fără cont. */}
         <Route element={<MainLayout />}>
-          {/* Acestea sunt Publice (merg și fără cont) */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/teorie" element={<Teorie />} />
 
@@ -63,13 +58,20 @@ export default function App() {
 
           <Route path="/rezolvare/:id" element={<RezolvareProblema />} />
           <Route path="/scoruri" element={<Scoruri />} />
+          <Route path="/teme" element={<Teme />} />
+          <Route path="/teme/noua" element={<EditorTema />} />
+          <Route path="/teme/:assignmentId/edit" element={<EditorTema />} />
+          <Route path="/teme/:assignmentId" element={<TemaDetalii />} />
+          <Route path="/clase" element={<Clase />} />
+          <Route path="/clase/:classId" element={<DetaliiClasa />} />
           
-          {/* Profilul este Protejat (dacă nu e logat, îl trimitem să se logheze) */}
-          <Route path="/profil" element={session ? <Profile /> : <Navigate to="/login" replace />} />
+          <Route
+            path="/profil"
+            element={user ? (profileComplete ? <Profile /> : <Navigate to="/creare-profil" replace />) : <Navigate to="/login" replace />}
+          />
           
         </Route>
         
-        {/* Dacă scrie o adresă care nu există, îl întoarcem pe pagina principală */}
         <Route path="*" element={<Navigate to="/" replace />} />
         
       </Routes>

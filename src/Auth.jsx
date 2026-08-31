@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from './supabaseClient';
-import { Mail, Lock, Loader2, FolderGit, Folder } from 'lucide-react';
+import { Mail, Lock, Loader2, FolderGit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
@@ -21,11 +21,21 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/creare-profil');
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/creare-profil`,
+          },
+        });
         if (error) throw error;
-        setMesaj({ text: 'Verifică email-ul pentru a confirma contul!', type: 'success' });
+
+        if (data.session) {
+          navigate('/creare-profil', { replace: true });
+        } else {
+          setMesaj({ text: 'Verifică email-ul pentru a confirma contul, apoi completează-ți profilul.', type: 'success' });
+        }
       }
     } catch (error) {
       setMesaj({ text: error.message, type: 'error' });
@@ -42,7 +52,7 @@ export default function Auth() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
-        options: { redirectTo: '${window.location.origin}/creare-profil' }
+        options: { redirectTo: `${window.location.origin}/creare-profil` }
       });
       if (error) throw error;
     } catch (error) {
