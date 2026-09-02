@@ -10,6 +10,9 @@ body,
 body {
   min-width: 320px;
   overflow-x: hidden;
+  background: var(--color-background);
+  color: var(--color-text-main);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 @theme {
@@ -78,4 +81,23 @@ body {
   --color-hard: #F85149; 
   /* 🔴 Roșu. 
      CÂND SĂ O FOLOSEȘTI: Eticheta pentru probleme "Greu", erori de compilare în terminalul Python, mesaje de tipul "Răspuns greșit". */
+}
+
+:root {
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-accent: #a96f08;
+  --color-accent-dim: #fff0c7;
+  --color-text-main: #17212b;
+  --color-muted: #5b6876;
+  --color-background: #f5f7fa;
+  --color-sidebar: #ffffff;
+  --color-sidebar-hover: #edf1f5;
+  --color-border: #d7dee6;
+  --color-easy: #198a43;
+  --color-medium: #a86605;
+  --color-hard: #c83b35;
 }

@@ -1,29 +1,35 @@
 import { Megaphone, Calendar, ChevronRight } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Anunturi() {
   const [anunturiData, setAnunturiData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAnunturi = async() => {
     try{
-        const {data, anunturiError} = await supabase
+        const {data, error: anunturiError} = await supabase
           .from('announcements')
           .select('id, title, body, tag, published_at')
           .order('published_at', {ascending: false})
           .limit(3);
 
           if(anunturiError) throw anunturiError;
-          setAnunturiData(data);
+          if (!cancelled) setAnunturiData(data || []);
       } catch(anunturiError) {
         console.log("Eroare la incarcarea anunturilor globale:", anunturiError); 
+        if (!cancelled) setError('Anunțurile nu au putut fi încărcate.');
       } finally{
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
     fetchAnunturi();
+    return () => { cancelled = true; };
   }, []);
 
   const formatDate = (dateStr) => {
@@ -86,17 +92,18 @@ export default function Anunturi() {
           <Megaphone className="w-5 h-5 text-accent" />
           <h3 className="text-text-main font-bold text-lg">Anunțuri</h3>
         </div>
-        <button className="text-xs text-muted hover:text-text-main transition-colors font-bold">
+        <Link to="/anunturi" className="text-xs text-muted hover:text-text-main transition-colors font-bold">
           Vezi toate
-        </button>
+        </Link>
       </div>
       {/* Lista de anunțuri */}
-      <div className="flex flex-col gap-4">
+      {error ? <p className="text-sm text-hard">{error}</p> : anunturiData.length === 0 ? <p className="text-sm text-muted">Nu există anunțuri momentan.</p> : <div className="flex flex-col gap-4">
         {anunturiData.map((item) => (
-          <div 
+          <Link
             key={item.id} 
+            to={`/anunturi#announcement-${item.id}`}
             // Bara colorată din stânga este creată folosind border-l-4
-            className={`pl-4 border-l-4 ${getBorderStyle(item.tag)} hover:bg-background/50 p-2 -ml-2 rounded-r-lg cursor-pointer transition-colors group`}
+            className={`block pl-4 border-l-4 ${getBorderStyle(item.tag)} hover:bg-background/50 p-2 -ml-2 rounded-r-lg cursor-pointer transition-colors group`}
           >
             <div className="flex justify-between items-start mb-1">
               <h4 className="text-text-main font-bold text-sm group-hover:text-accent transition-colors">
@@ -113,14 +120,14 @@ export default function Anunturi() {
             </p>
 
             <div className="mt-2 flex items-center justify-between">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${getBadgeStyle(item.type)}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${getBadgeStyle(item.tag)}`}>
                 {getTagLabel(item.tag)}
               </span>
               <ChevronRight className="w-4 h-4 text-muted group-hover:text-accent opacity-0 group-hover:opacity-100 transition-all transform -translate-x-2 group-hover:translate-x-0" />
             </div>
-          </div>
+          </Link>
         ))}
-      </div>
+      </div>}
 
     </div>
   );

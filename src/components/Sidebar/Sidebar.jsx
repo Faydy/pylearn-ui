@@ -7,14 +7,14 @@ import SidebarComponent from "./SidebarComponent";
 import Logo from "./Logo";
 
 // Iconițele (am adăugat LogIn pentru butonul de conectare)
-import { LayoutDashboard, BookOpen, ClipboardList, School, Trophy, Terminal, LogIn } from 'lucide-react';
+import { LayoutDashboard, BookOpen, ClipboardList, School, Trophy, Terminal, LogIn, Megaphone } from 'lucide-react';
 
 export default function Sidebar() {
   const { user } = useAuth();
 
   return (
     // AM CORECTAT AICI: Am transformat NavLink-ul principal într-un <aside>
-    <aside className="h-full dark:bg-sidebar border-r border-border flex flex-col items-center justify-center w-full">
+    <aside className="flex h-full w-full flex-col items-center justify-center border-r border-border bg-sidebar">
       
       {/* Partea de Sus: Logo */}
       <Logo />
@@ -27,6 +27,7 @@ export default function Sidebar() {
         <SidebarComponent name="Teorie" icon={BookOpen} to="/teorie" />
         <SidebarComponent name="Clase" icon={School} to="/clase" />
         <SidebarComponent name="Teme" icon={ClipboardList} to="/teme" />
+        <SidebarComponent name="Anunțuri" icon={Megaphone} to="/anunturi" />
         <SidebarComponent name="Scoruri" icon={Trophy} to="/scoruri" />
       </div>
       

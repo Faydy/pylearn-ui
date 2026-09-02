@@ -8,7 +8,7 @@ export default function Dashboard() {
 
   return (
     // 1. Am adăugat 'w-full' aici
-    <div className="flex min-h-full w-full flex-col 2xl:flex-row">
+    <div className="flex min-h-full w-full flex-col xl:flex-row">
       
       {/* 2. Coloana Centrală primește 'flex-1' pentru a se extinde pe rezoluții mari */}
       {/*    Am adăugat și 'min-w-0' ca să fim siguri că nu va depăși lățimea ecranului */}
@@ -22,7 +22,7 @@ export default function Dashboard() {
       </div>
         
       {/* Coloana din Dreapta rămâne la fel */}
-      <div className="w-full shrink-0 2xl:w-80">
+      <div className="w-full shrink-0 xl:w-80">
         <RightSidebar />
       </div>
       

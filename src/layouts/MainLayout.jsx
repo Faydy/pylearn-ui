@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar/Sidebar";
 
 export default function MainLayout() {
   return (
-    <div className="flex min-h-dvh w-full flex-col overflow-hidden bg-[#fff] font-sans text-gray-700 dark:bg-background dark:text-text-main lg:h-dvh lg:flex-row">
+    <div className="flex min-h-dvh w-full flex-col overflow-hidden bg-background font-sans text-text-main lg:h-dvh lg:flex-row">
       <div className="hidden w-64 flex-shrink-0 lg:block">
         <Sidebar />
       </div>

@@ -7,12 +7,17 @@ import { normalizeSearchText } from "../utils/search";
 
 export default function ToateProblemele() {
     // 1. Extragem parametrul 'categorie' din adresa URL
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const categorieSlug = searchParams.get('categorie');
+    const queryFromUrl = searchParams.get('q') || '';
 
     const [probleme, setProbleme] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(queryFromUrl);
+
+    useEffect(() => {
+        setSearchQuery(queryFromUrl);
+    }, [queryFromUrl]);
 
     useEffect(() => {
         const fetchProbleme = async () => {
@@ -67,6 +72,19 @@ export default function ToateProblemele() {
         normalizeSearchText(p.title).includes(normalizedSearchQuery)
     );
 
+    const handleSearchChange = (event) => {
+        const nextQuery = event.target.value;
+        setSearchQuery(nextQuery);
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        if (nextQuery.trim()) {
+            nextSearchParams.set('q', nextQuery);
+        } else {
+            nextSearchParams.delete('q');
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    };
+
     // Titlu și mesaj dinamic pentru antet
     const numeCategorieActive = probleme.length > 0 && categorieSlug ? probleme[0].categories.name : categorieSlug;
 
@@ -100,7 +118,7 @@ export default function ToateProblemele() {
                         type="text"
                         placeholder={categorieSlug ? `Caută în ${numeCategorieActive}...` : "Caută o problemă după titlu..."}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
                         className="w-full bg-ink border border-border text-text-main rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-accent transition-colors"
                     />
                 </div>

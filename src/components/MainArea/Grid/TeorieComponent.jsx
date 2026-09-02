@@ -1,4 +1,5 @@
 import { BookOpen, ArrowRight, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
 export default function TeorieComponent(){
     return(
         <div className="bg-ink border border-border p-6 rounded-2xl flex flex-col justify-between hover:border-muted transition-all">
@@ -13,9 +14,9 @@ export default function TeorieComponent(){
           
           <div className="flex justify-between items-end mt-6">
              <span className="text-xs text-muted flex items-center gap-1"><Clock className="w-3 h-3"/> ~ 10 min de citit</span>
-            <button className="flex items-center gap-2 text-accent hover:text-white transition-colors text-sm font-bold">
+            <Link to="/teorie" className="flex items-center gap-2 text-accent hover:text-white transition-colors text-sm font-bold">
               Deschide Lecția <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
         </div>
     );

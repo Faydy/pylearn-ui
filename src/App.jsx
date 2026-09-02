@@ -5,6 +5,10 @@ import { useAuth } from './AuthContext';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Teorie from './pages/Teorie';
+import TeorieClasa from './pages/TeorieClasa';
+import TeorieSectiune from './pages/TeorieSectiune';
+import TeorieCapitol from './pages/TeorieCapitol';
+import TeorieLectie from './pages/TeorieLectie';
 import Probleme from './pages/Probleme';
 import Scoruri from './pages/Scoruri';
 import Profile from './pages/Profile';
@@ -17,6 +21,7 @@ import TemaDetalii from './pages/TemaDetalii';
 import EditorTema from './pages/EditorTema';
 import Clase from './pages/Clase';
 import DetaliiClasa from './pages/DetaliiClasa';
+import Anunturi from './pages/Anunturi';
 
 import Auth from './Auth';
 import CreareProfil from './CreareProfil';
@@ -50,6 +55,10 @@ export default function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/teorie" element={<Teorie />} />
+          <Route path="/teorie/clasa/:gradeId" element={<TeorieClasa />} />
+          <Route path="/teorie/clasa/:gradeId/sectiune/:sectionName" element={<TeorieSectiune />} />
+          <Route path="/teorie/capitol/:chapterId" element={<TeorieCapitol />} />
+          <Route path="/teorie/:theoryId" element={<TeorieLectie />} />
 
           <Route path="/probleme" element={<Probleme />} />
           <Route path="/probleme/clasa/:gradeId" element={<Capitole />} />
@@ -58,6 +67,7 @@ export default function App() {
 
           <Route path="/rezolvare/:id" element={<RezolvareProblema />} />
           <Route path="/scoruri" element={<Scoruri />} />
+          <Route path="/anunturi" element={<Anunturi />} />
           <Route path="/teme" element={<Teme />} />
           <Route path="/teme/noua" element={<EditorTema />} />
           <Route path="/teme/:assignmentId/edit" element={<EditorTema />} />
