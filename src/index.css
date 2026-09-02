@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
 @theme {
   --font-sans: "Outfit", sans-serif;
   

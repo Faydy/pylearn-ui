@@ -90,7 +90,7 @@ export default function Clasament() {
   };
 
   return (
-    <div className="bg-ink rounded-2xl border border-border p-5 mt-6">
+    <div className="rounded-2xl border border-border bg-ink p-5">
       
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">

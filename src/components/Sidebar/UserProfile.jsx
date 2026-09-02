@@ -1,5 +1,5 @@
 import { useAuth } from "../../AuthContext";
-import { getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../../utils/profile';
+import { getAvatarUrl, getProfileAvatarSeed, normalizeProfileRole, PROFILE_ROLES } from '../../utils/profile';
 
 export default function UserProfile() {
   const { profile, user, loading } = useAuth();
@@ -9,7 +9,7 @@ export default function UserProfile() {
   }
 
   const displayName = profile?.username || (loading ? 'Se încarcă...' : 'Utilizator');
-  const avatarSeed = user.user_metadata?.avatar || profile?.username || user.email || 'user';
+  const avatarSeed = getProfileAvatarSeed(profile, user);
   const role = PROFILE_ROLES.find((item) => item.value === normalizeProfileRole(profile?.role || user.user_metadata?.role));
 
   return (

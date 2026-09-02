@@ -75,12 +75,12 @@ export default function Probleme() {
         <div className="flex flex-col h-full w-full">
             <TopHeader title="Probleme" />
             
-            <div className="p-6 overflow-y-auto w-full flex flex-col items-center">
+            <div className="flex w-full flex-1 flex-col items-center overflow-y-auto p-4 sm:p-6">
                 <div className="w-full max-w-7xl pb-10">
                     
                     <div className="mb-8">
-                        <h2 className="text-3xl font-bold text-text-main">Alege nivelul tău</h2>
-                        <p className="text-muted mt-2 text-lg">Selectează clasa pentru a accesa capitolele și problemele specifice.</p>
+                        <h2 className="text-2xl font-bold text-text-main sm:text-3xl">Alege nivelul tău</h2>
+                        <p className="mt-2 text-base text-muted sm:text-lg">Selectează clasa pentru a accesa capitolele și problemele specifice.</p>
                     </div>
 
                     {loading ? (
@@ -91,12 +91,12 @@ export default function Probleme() {
                         <div className="flex flex-col gap-8">
                             
                             {/* --- GRID-UL CU CLASE --- */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
                                 {clase?.map((clasa) => (
                                     <Link 
                                         to={`/probleme/clasa/${clasa.id}`} 
                                         key={clasa.id}
-                                        className="group bg-ink border border-border p-6 rounded-3xl flex flex-col justify-between hover:border-accent hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)] hover:-translate-y-1 transition-all duration-300 min-h-[220px]"
+                                        className="group flex min-h-[190px] flex-col justify-between rounded-3xl border border-border bg-ink p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)] sm:min-h-[220px] sm:p-6"
                                     >
                                         <div className="flex justify-between items-start">
                                             <div className="w-14 h-14 rounded-2xl bg-background border border-border flex items-center justify-center group-hover:text-accent group-hover:border-accent/50 transition-colors">
@@ -122,18 +122,18 @@ export default function Probleme() {
                             {/* --- BANNER TOATE PROBLEMELE --- */}
                             <Link 
                                 to="/probleme/toate" 
-                                className="group relative overflow-hidden bg-ink border border-border p-6 md:p-8 rounded-3xl flex items-center justify-between hover:border-accent hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.15)] transition-all duration-300 mt-2"
+                                className="group relative mt-2 flex flex-col items-start gap-5 overflow-hidden rounded-3xl border border-border bg-ink p-5 transition-all duration-300 hover:border-accent hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.15)] sm:flex-row sm:items-center sm:justify-between sm:p-6 md:p-8"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                <div className="flex items-center gap-6 relative z-10">
-                                    <div className="w-16 h-16 rounded-2xl bg-background border border-border flex items-center justify-center group-hover:text-accent group-hover:border-accent/50 transition-colors shrink-0">
+                                <div className="relative z-10 flex min-w-0 items-start gap-4 sm:items-center sm:gap-6">
+                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-border bg-background transition-colors group-hover:border-accent/50 group-hover:text-accent sm:h-16 sm:w-16">
                                         <Code2 className="w-8 h-8" />
                                     </div>
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-text-main group-hover:text-accent transition-colors">
+                                    <div className="min-w-0">
+                                        <h3 className="text-xl font-bold text-text-main transition-colors group-hover:text-accent sm:text-2xl">
                                             Explorează toate problemele
                                         </h3>
-                                        <p className="text-base text-muted mt-1 max-w-2xl">
+                                        <p className="mt-1 max-w-2xl text-sm text-muted sm:text-base">
                                             Nu vrei să urmezi curicula? Caută probleme specifice sau filtrează arhiva completă după nivelul de dificultate și categorie.
                                         </p>
                                     </div>
@@ -143,7 +143,7 @@ export default function Probleme() {
                                 </div>
                             </Link>
                             
-                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mt-6">
+                            <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3 xl:gap-8">
                                 
                                 {/* --- CONCEPTE POPULARE (Folosind tabelul categories) --- */}
                                 <div className="xl:col-span-2 flex flex-col">

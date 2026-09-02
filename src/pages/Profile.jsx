@@ -49,7 +49,7 @@ export default function Profile() {
 
         setProfileData(profil);
         setUsername(profil.username || '');
-        setAvatar(user.user_metadata?.avatar || '');
+        setAvatar(profil.avatar || user.user_metadata?.avatar || '');
         setRole(normalizeProfileRole(profil.role || user.user_metadata?.role || ''));
       } catch (error) {
         console.error("Eroare la încărcarea profilului:", error.message);
@@ -83,7 +83,7 @@ export default function Profile() {
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ username: normalizedUsername, role })
+        .update({ username: normalizedUsername, avatar, role })
         .eq('id', userAuth.id);
 
       if (profileError) {
@@ -103,7 +103,7 @@ export default function Profile() {
       setUsername(normalizedUsername);
       setProfileData((currentProfile) => (
         currentProfile
-          ? { ...currentProfile, username: normalizedUsername, role }
+          ? { ...currentProfile, username: normalizedUsername, avatar, role }
           : currentProfile
       ));
       const refreshedUser = await refreshAuth();
@@ -131,10 +131,10 @@ export default function Profile() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto w-full">
+    <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-text-main">Profilul Meu</h1>
+        <h1 className="text-2xl font-bold text-text-main sm:text-3xl">Profilul Meu</h1>
         <p className="text-muted mt-2">Gestionează datele contului și preferințele tale.</p>
       </div>
 
@@ -143,7 +143,7 @@ export default function Profile() {
         {/* PARTEA STÂNGĂ: Formularul de editare */}
         <div className="md:col-span-2 flex flex-col gap-6">
           
-          <div className="bg-ink border border-border rounded-2xl p-6">
+          <div className="rounded-2xl border border-border bg-ink p-4 sm:p-6">
             <h2 className="text-lg font-bold text-text-main mb-6 flex items-center gap-2">
               <User className="w-5 h-5 text-accent" />
               Informații Personale
@@ -240,18 +240,18 @@ export default function Profile() {
                 </div>
               </fieldset>
 
-              <div className="flex justify-end mt-2">
+              <div className="mt-2 flex justify-end">
                 <button
                   type="submit"
                   disabled={
                     saving
                     || (
                       normalizedPreview === profileData?.username
-                      && avatar === (userAuth?.user_metadata?.avatar || '')
+                      && avatar === (profileData?.avatar || userAuth?.user_metadata?.avatar || '')
                       && role === normalizeProfileRole(profileData?.role || userAuth?.user_metadata?.role || '')
                     )
                   }
-                  className="cursor-pointer bg-accent text-ink font-bold py-2.5 px-6 rounded-xl hover:bg-accent/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent px-6 py-2.5 font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Salvează Modificările

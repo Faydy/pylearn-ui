@@ -32,14 +32,14 @@ export default function CreareProfil() {
       setUsername((currentUsername) => currentUsername || profile.username);
     }
 
-    if (user?.user_metadata?.avatar) {
-      setAvatar(user.user_metadata.avatar);
+    if (profile?.avatar || user?.user_metadata?.avatar) {
+      setAvatar(profile?.avatar || user.user_metadata.avatar);
     }
 
     if (profile?.role || user?.user_metadata?.role) {
       setRole(normalizeProfileRole(profile?.role || user.user_metadata.role));
     }
-  }, [profile?.role, profile?.username, user?.user_metadata?.avatar, user?.user_metadata?.role]);
+  }, [profile?.avatar, profile?.role, profile?.username, user?.user_metadata?.avatar, user?.user_metadata?.role]);
 
   useEffect(() => {
     if (isProfileComplete(profile, user)) {
@@ -121,7 +121,7 @@ export default function CreareProfil() {
     try {
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, username: normalizedUsername, role }, { onConflict: 'id' });
+        .upsert({ id: user.id, username: normalizedUsername, avatar, role }, { onConflict: 'id' });
 
       if (profileError) {
         if (profileError.code === '23505') {
@@ -156,15 +156,15 @@ export default function CreareProfil() {
 
         <section className="overflow-hidden rounded-2xl border border-border bg-ink shadow-xl">
           <div className="border-b border-border bg-sidebar/40 px-6 py-5 sm:px-8">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-full ${emailVerified ? 'bg-easy/10 text-easy' : 'bg-accent/10 text-accent'}`}>
                 {emailVerified ? <CheckCircle2 className="h-5 w-5" /> : <Mail className="h-5 w-5" />}
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <h2 className="font-bold text-text-main">Confirmă adresa de email</h2>
-                <p className="text-sm text-muted">{user?.email || 'Se încarcă adresa de email...'}</p>
+                <p className="truncate text-sm text-muted">{user?.email || 'Se încarcă adresa de email...'}</p>
               </div>
-              <span className={`ml-auto rounded-full px-3 py-1 text-xs font-bold ${emailVerified ? 'bg-easy/10 text-easy' : 'bg-accent/10 text-accent'}`}>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold sm:ml-auto ${emailVerified ? 'bg-easy/10 text-easy' : 'bg-accent/10 text-accent'}`}>
                 {emailVerified ? 'Confirmat' : 'De confirmat'}
               </span>
             </div>
@@ -172,7 +172,7 @@ export default function CreareProfil() {
             {!emailVerified && (
               <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted">Accesează linkul primit în inbox pentru a activa contul.</p>
-                <div className="flex shrink-0 gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                   <button
                     type="button"
                     onClick={handleResendVerification}
@@ -185,7 +185,7 @@ export default function CreareProfil() {
                     type="button"
                     onClick={handleRefreshVerification}
                     disabled={isRefreshing}
-                    className="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     Am confirmat

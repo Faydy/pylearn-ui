@@ -10,13 +10,13 @@ export default function TopHeader({title = "Dashboard"}) {
       }
     }, [isDark]);
   return (
-    <header className="h-16 bg-background border-b border-border flex items-center justify-between px-8 sticky top-0 z-10">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6 lg:px-8">
       
       <div>
         <h2 className="text-text-main font-bold text-lg">{title}</h2>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 sm:gap-6">
         
         <div className="relative hidden md:block">
           <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -33,10 +33,10 @@ export default function TopHeader({title = "Dashboard"}) {
         </button>
 
         {/* 3. Linia despărțitoare verticală */}
-        <div className="h-6 w-px bg-border"></div>
+        <div className="hidden h-6 w-px bg-border sm:block"></div>
 
         {/* 4. Butonul pentru Trecere pe Light Mode */}
-        <button className="flex items-center gap-2 bg-background hover:bg-sidebar-hover border border-border text-text-main text-sm font-bold py-1.5 px-3 rounded-full transition-colors" onClick={() => setIsDark(!isDark)}>
+        <button aria-label={isDark ? 'Activează tema luminoasă' : 'Activează tema întunecată'} className="flex items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1.5 text-sm font-bold text-text-main transition-colors hover:bg-sidebar-hover sm:px-3" onClick={() => setIsDark(!isDark)}>
           <Sun className="w-4 h-4 text-accent" />
           <span className="hidden sm:inline">{isDark ? 'Dark mode' : 'Light mode'}</span>
         </button>

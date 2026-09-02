@@ -96,13 +96,13 @@ export default function Capitole() {
             <TopHeader title={clasa?.name || "Capitole"} />
             
             {/* Tot conținutul de sub header este învelit în acest div care are padding-ul (p-6) */}
-            <div className="p-6 pb-10 overflow-y-auto flex-1">
+            <div className="flex-1 overflow-y-auto p-4 pb-10 sm:p-6">
                 <div className="mb-8">
                     <Link to="/probleme" className="inline-flex items-center gap-2 text-muted hover:text-text-main transition-colors mb-4 text-sm font-medium">
                         <ArrowLeft className="w-4 h-4" />
                         Înapoi la clase
                     </Link>
-                    <h2 className="text-3xl font-bold text-text-main flex items-center gap-3">
+                    <h2 className="flex flex-wrap items-center gap-3 text-2xl font-bold text-text-main sm:text-3xl">
                         <BookOpen className="w-8 h-8 text-accent" />
                         Curiculă {clasa?.name}
                     </h2>
@@ -121,7 +121,7 @@ export default function Capitole() {
                                 {/* Header-ul Albastru - Acum este un link interactiv! */}
                             <Link 
                                 to={`/probleme/clasa/${gradeId}/sectiune/${encodeURIComponent(grup.sectiune)}`}
-                                className="bg-accent/20 hover:bg-accent/30 transition-colors border-b border-accent/30 px-6 py-4 flex items-center justify-between group"
+                                className="group flex flex-col gap-2 border-b border-accent/30 bg-accent/20 px-4 py-4 transition-colors hover:bg-accent/30 sm:flex-row sm:items-center sm:justify-between sm:px-6"
                             >
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-xl font-bold text-accent group-hover:text-text-main transition-colors">
@@ -151,11 +151,11 @@ export default function Capitole() {
                                                         <Link 
                                                             to={`/rezolvare/${problema.id}`} 
                                                             key={problema.id}
-                                                            className="group flex items-center justify-between p-3 rounded-lg hover:bg-sidebar-hover transition-colors border border-transparent hover:border-border"
+                                                        className="group flex flex-col gap-3 rounded-lg border border-transparent p-3 transition-colors hover:border-border hover:bg-sidebar-hover sm:flex-row sm:items-center sm:justify-between"
                                                         >
-                                                            <div className="flex items-center gap-3">
+                                                            <div className="flex min-w-0 items-center gap-3">
                                                                 <Code2 className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
-                                                                <span className="font-medium text-text-main group-hover:text-accent transition-colors text-sm">
+                                                                <span className="min-w-0 text-sm font-medium text-text-main transition-colors group-hover:text-accent">
                                                                     {problema.title}
                                                                 </span>
                                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getDifficultyStyle(problema.difficulty)}`}>

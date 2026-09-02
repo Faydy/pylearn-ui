@@ -19,9 +19,9 @@ export default function MobileNavigation() {
 
   return (
     <nav className="shrink-0 overflow-x-auto border-b border-border bg-sidebar lg:hidden" aria-label="Navigare principală">
-      <div className="flex min-w-max items-stretch px-2">
+      <div className="flex min-w-max items-stretch px-1.5 sm:px-2">
         {[...navigationItems, accountItem].map(({ label, to, icon: Icon, end }) => (
-          <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex min-h-14 flex-col items-center justify-center gap-1 px-3 text-[10px] font-bold transition-colors ${isActive ? 'text-accent' : 'text-muted hover:text-text-main'}`}>
+          <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex min-h-14 flex-col items-center justify-center gap-1 px-2.5 text-[10px] font-bold transition-colors sm:px-3 ${isActive ? 'text-accent' : 'text-muted hover:text-text-main'}`}>
             <Icon className="h-4 w-4" />
             <span>{label}</span>
           </NavLink>

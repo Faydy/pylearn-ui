@@ -33,6 +33,16 @@ export function getAvatarUrl(seed) {
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'pyLearn')}`;
 }
 
+export function getProfileAvatarSeed(profile, user) {
+  const avatar = profile?.avatar || user?.user_metadata?.avatar;
+
+  if (AVATAR_OPTIONS.includes(avatar)) {
+    return avatar;
+  }
+
+  return profile?.username || user?.email || 'pyLearn';
+}
+
 export function isEmailVerified(user) {
   return Boolean(user?.email_confirmed_at || user?.confirmed_at);
 }

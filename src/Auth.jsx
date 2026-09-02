@@ -63,7 +63,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="bg-ink border border-border w-full max-w-md p-8 rounded-2xl shadow-xl">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-ink p-6 shadow-xl sm:p-8">
         
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-text-main mb-2">pyLearn</h1>
@@ -125,7 +125,7 @@ export default function Auth() {
         </div>
 
         {/* 3. Butoanele pentru Social Login */}
-        <div className="flex gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
           {/* Buton Google (Folosim un text simplu cu 'G' stilizat dacă nu ai un SVG extern pregătit) */}
           <button
             onClick={() => handleSocialLogin('google')}

@@ -33,7 +33,7 @@ export default function Scoruri() {
       setPodiumLoading(true);
       const { data, count, error: fetchError } = await supabase
         .from('profiles')
-        .select('id, username, total_xp', { count: 'exact' })
+        .select('id, username, avatar, total_xp', { count: 'exact' })
         .not('username', 'is', null)
         .order('total_xp', { ascending: false })
         .order('username', { ascending: true })
@@ -64,7 +64,7 @@ export default function Scoruri() {
 
       let query = supabase
         .from('profiles')
-        .select('id, username, total_xp', { count: 'exact' })
+        .select('id, username, avatar, total_xp', { count: 'exact' })
         .not('username', 'is', null)
         .order('total_xp', { ascending: false })
         .order('username', { ascending: true });
@@ -105,7 +105,7 @@ export default function Scoruri() {
       setStandingLoading(true);
       const { data: currentProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, username, total_xp')
+        .select('id, username, avatar, total_xp')
         .eq('id', user.id)
         .maybeSingle();
 

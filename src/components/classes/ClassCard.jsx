@@ -5,7 +5,7 @@ import { formatClassroomDate, formatStudentCount } from '../../utils/classrooms'
 
 export default function ClassCard({ classroom, teacherView }) {
   return (
-    <article className="flex min-h-[260px] flex-col rounded-2xl border border-border bg-ink p-6 transition-colors hover:border-muted">
+    <article className="flex min-h-[260px] flex-col rounded-2xl border border-border bg-ink p-4 transition-colors hover:border-muted sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-bold text-accent"><GraduationCap className="h-5 w-5" />Clasă</div>

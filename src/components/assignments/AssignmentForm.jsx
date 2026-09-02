@@ -74,7 +74,7 @@ export default function AssignmentForm({ classrooms, assignment, initialProblemI
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-5">
-      <section className="space-y-5 rounded-2xl border border-border bg-ink p-6 lg:col-span-2">
+      <section className="space-y-5 rounded-2xl border border-border bg-ink p-4 sm:p-6 lg:col-span-2">
         <div>
           <label htmlFor="assignment-title" className="mb-2 block text-sm font-bold text-text-main">Titlu *</label>
           <input id="assignment-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={200} required className="w-full rounded-xl border border-border bg-background px-4 py-3 text-text-main outline-none transition-colors focus:border-accent" placeholder="Recapitulare condiții" />
@@ -106,9 +106,9 @@ export default function AssignmentForm({ classrooms, assignment, initialProblemI
         </button>
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-border bg-ink p-6 lg:col-span-3">
+      <section className="space-y-5 rounded-2xl border border-border bg-ink p-4 sm:p-6 lg:col-span-3">
         <div>
-          <div className="mb-3 flex items-center justify-between gap-4">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div><h2 className="font-bold text-text-main">Problemele temei</h2><p className="mt-1 text-sm text-muted">Ordinea de mai jos devine poziția fiecărei probleme.</p></div>
             <span className="rounded-md bg-accent/10 px-2 py-1 text-sm font-bold text-accent">{selectedProblems.length}</span>
           </div>

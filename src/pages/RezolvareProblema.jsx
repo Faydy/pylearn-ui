@@ -240,20 +240,20 @@ export default function RezolvareProblema() {
 
     if (!problema) {
         return (
-            <div className="p-8 text-center flex-1">
+            <div className="flex-1 p-4 text-center sm:p-6">
                 <h2 className="text-2xl text-hard font-bold">Problema nu a fost găsită!</h2>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <div className="flex min-h-full flex-col bg-background">
 
-            <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden">
+            <div className="flex flex-1 flex-col p-4 sm:p-6">
 
                 {/* === HEADER-UL PROBLEMEI === */}
                 <div className="mb-6 shrink-0">
-                    <div className="flex items-center gap-2 text-sm text-muted mb-3">
+                    <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted">
                         <Link to="/probleme" className="hover:text-accent transition-colors">Probleme</Link>
                         <ChevronRight className="w-4 h-4" />
                         
@@ -272,13 +272,13 @@ export default function RezolvareProblema() {
                         )}
                         
                         <ChevronRight className="w-4 h-4" />
-                        <span className="text-text-main">{problema.title}</span>
+                        <span className="min-w-0 truncate text-text-main">{problema.title}</span>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-4">
-                                <h1 className="text-3xl font-bold text-text-main">{problema.title}</h1>
+                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                <h1 className="min-w-0 text-2xl font-bold text-text-main sm:text-3xl">{problema.title}</h1>
                                 <span className={`px-2.5 py-0.5 border rounded-full text-xs font-bold uppercase tracking-wider ${getDifficultyStyle(problema.difficulty)}`}>
                                     {problema.difficulty}
                                 </span>
@@ -288,7 +288,7 @@ export default function RezolvareProblema() {
                                 </span>
                             </div>
 
-                            <div className="flex items-center gap-6 mt-3 text-sm font-medium">
+                            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-medium sm:gap-6">
                                 {isSolved ? (
                                     <div className="flex items-center gap-1.5 text-easy bg-easy/10 px-3 py-1 rounded-lg border border-easy/20">
                                         <CheckCircle2 className="w-4 h-4" /> Rezolvată
@@ -301,11 +301,11 @@ export default function RezolvareProblema() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-ink border border-border text-text-main rounded-xl hover:border-accent transition-colors text-sm font-medium">
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+                            <button className="flex items-center justify-center gap-2 rounded-xl border border-border bg-ink px-4 py-2 text-sm font-medium text-text-main transition-colors hover:border-accent">
                                 <Star className="w-4 h-4" /> Favorite
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-ink border border-border text-text-main rounded-xl hover:border-accent transition-colors text-sm font-medium">
+                            <button className="flex items-center justify-center gap-2 rounded-xl border border-border bg-ink px-4 py-2 text-sm font-medium text-text-main transition-colors hover:border-accent">
                                 <Share2 className="w-4 h-4" /> Distribuie
                             </button>
                         </div>
@@ -313,11 +313,11 @@ export default function RezolvareProblema() {
                 </div>
 
                 {/* === LAYOUT BANC DE LUCRU === */}
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                <div className="grid grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-2 xl:gap-6">
 
                     {/* COLOANA STÂNGĂ (Enunț) */}
-                    <div className="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
-                        <div className="bg-ink border border-border rounded-2xl p-6">
+                    <div className="flex flex-col gap-4 pb-6 xl:min-h-0 xl:gap-6 xl:overflow-y-auto xl:pr-2 xl:pb-10">
+                        <div className="rounded-2xl border border-border bg-ink p-4 sm:p-6">
                             <div className="flex items-center gap-2 text-text-main font-bold text-lg mb-4">
                                 <FileText className="w-5 h-5 text-accent" /> Descriere
                             </div>
@@ -326,7 +326,7 @@ export default function RezolvareProblema() {
                             </p>
                         </div>
 
-                        <div className="bg-ink border border-border rounded-2xl p-6">
+                        <div className="rounded-2xl border border-border bg-ink p-4 sm:p-6">
                             <div className="flex items-center gap-2 text-text-main font-bold text-lg mb-4">
                                 <SlidersHorizontal className="w-5 h-5 text-medium" /> Constrângeri
                             </div>
@@ -337,13 +337,13 @@ export default function RezolvareProblema() {
                         </div>
 
                         {problema.test_cases && problema.test_cases.length > 0 && (
-                            <div className="bg-ink border border-border rounded-2xl p-6">
+                            <div className="rounded-2xl border border-border bg-ink p-4 sm:p-6">
                                 <div className="flex items-center gap-2 text-text-main font-bold text-lg mb-4">
                                     <Lightbulb className="w-5 h-5 text-easy" /> Exemplu
                                 </div>
 
                                 {problema.test_cases.map((test, index) => (
-                                    <div key={index} className="grid grid-cols-2 gap-4 mb-4 last:mb-0">
+                                    <div key={index} className="mb-4 grid grid-cols-1 gap-4 last:mb-0 sm:grid-cols-2">
                                         <div className="bg-background border border-border rounded-xl p-4">
                                             <span className="text-[10px] text-muted font-bold uppercase tracking-wider mb-2 block">Input</span>
                                             <pre className="text-text-main font-mono text-sm">{test.input.replace(/\\n/g, '\n')}</pre>
@@ -359,12 +359,12 @@ export default function RezolvareProblema() {
                     </div>
 
                     {/* COLOANA DREAPTĂ (Editor + Terminal) */}
-                    <div className="flex flex-col bg-[#1e1e1e] border border-border rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="flex min-h-[42rem] flex-col overflow-hidden rounded-2xl border border-border bg-[#1e1e1e] shadow-2xl xl:min-h-0">
 
                         {/* Toolbar Editor */}
-                        <div className="bg-[#2d2d2d] px-4 py-3 flex items-center justify-between border-b border-border/50 shrink-0">
-                            <div className="flex items-center gap-4">
-                                <div className="flex gap-1.5">
+                        <div className="flex flex-col gap-3 border-b border-border/50 bg-[#2d2d2d] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                <div className="hidden gap-1.5 sm:flex">
                                     <div className="w-3 h-3 rounded-full bg-hard"></div>
                                     <div className="w-3 h-3 rounded-full bg-medium"></div>
                                     <div className="w-3 h-3 rounded-full bg-easy"></div>
@@ -374,7 +374,7 @@ export default function RezolvareProblema() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                 <button
                                     onClick={handleResetCode}
                                     className="text-muted hover:text-text-main p-1.5 transition-colors"
@@ -385,7 +385,7 @@ export default function RezolvareProblema() {
                                 <button
                                     onClick={handleRun}
                                     disabled={isRunning}
-                                    className="flex items-center gap-1.5 px-4 py-1.5 bg-ink text-text-main border border-border rounded-lg hover:border-text-main transition-colors text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-ink px-4 py-1.5 text-sm font-bold text-text-main transition-colors hover:border-text-main disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                                 >
                                     {isRunning ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -397,7 +397,7 @@ export default function RezolvareProblema() {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="flex items-center gap-1.5 px-4 py-1.5 bg-accent text-ink rounded-lg hover:bg-accent/90 transition-colors text-sm font-bold shadow-lg shadow-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-sm font-bold text-ink shadow-lg shadow-accent/20 transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                                 >
                                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                     {isSubmitting ? 'Se verifică...' : 'Trimite'}
@@ -406,7 +406,7 @@ export default function RezolvareProblema() {
                         </div>
 
                         {/* ZONA MONACO EDITOR */}
-                        <div className="flex-1 overflow-hidden relative">
+                        <div className="relative h-[min(60dvh,34rem)] flex-none overflow-hidden xl:h-auto xl:flex-1">
                             <Editor
                                 height="100%"
                                 defaultLanguage="python"
@@ -428,8 +428,8 @@ export default function RezolvareProblema() {
                         </div>
 
                         {/* TERMINAL / OUTPUT */}
-                        <div className="h-48 bg-[#1e1e1e] border-t border-border/50 flex flex-col shrink-0">
-                            <div className="flex items-center gap-6 px-6 pt-2 border-b border-border/50">
+                        <div className="flex h-56 shrink-0 flex-col border-t border-border/50 bg-[#1e1e1e] sm:h-48">
+                            <div className="flex items-center gap-4 overflow-x-auto border-b border-border/50 px-4 pt-2 sm:gap-6 sm:px-6">
                                 <button
                                     onClick={() => setActiveTab('output')}
                                     className={`flex items-center gap-2 pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'output' ? 'border-accent text-text-main' : 'border-transparent text-muted hover:text-text-main'}`}

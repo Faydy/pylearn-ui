@@ -84,7 +84,7 @@ export default function CalendarActivitate() {
   });
 
   return (
-    <div className="bg-ink mt-6 border border-border p-6 rounded-2xl relative">
+    <div className="relative rounded-2xl border border-border bg-ink p-5 sm:p-6">
       
       {/* Overlay de încărcare */}
       {loading && (

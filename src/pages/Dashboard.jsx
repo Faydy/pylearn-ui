@@ -8,13 +8,13 @@ export default function Dashboard() {
 
   return (
     // 1. Am adăugat 'w-full' aici
-    <div className="flex w-full min-h-full">
+    <div className="flex min-h-full w-full flex-col 2xl:flex-row">
       
       {/* 2. Coloana Centrală primește 'flex-1' pentru a se extinde pe rezoluții mari */}
       {/*    Am adăugat și 'min-w-0' ca să fim siguri că nu va depăși lățimea ecranului */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
         <TopHeader />
-        <div className="p-6 flex flex-col flex-1">
+        <div className="flex flex-1 flex-col p-4 sm:p-6">
           <TaskGrid />
           <Continue />
           <ListaProbleme/>
@@ -22,7 +22,7 @@ export default function Dashboard() {
       </div>
         
       {/* Coloana din Dreapta rămâne la fel */}
-      <div className="w-80 flex-shrink-0">
+      <div className="w-full shrink-0 2xl:w-80">
         <RightSidebar />
       </div>
       

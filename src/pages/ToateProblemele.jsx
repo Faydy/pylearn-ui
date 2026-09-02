@@ -74,14 +74,14 @@ export default function ToateProblemele() {
         <div className="flex flex-col h-full">
             <TopHeader title={categorieSlug ? "Probleme filtrate" : "Toate problemele"} />
             
-            <div className="p-6 pb-10 overflow-y-auto flex-1">
+            <div className="flex-1 overflow-y-auto p-4 pb-10 sm:p-6">
                 <div className="mb-8">
                     <Link to="/probleme" className="inline-flex items-center gap-2 text-muted hover:text-text-main transition-colors mb-4 text-sm font-medium">
                         <ArrowLeft className="w-4 h-4" />
                         Înapoi la clase
                     </Link>
                     
-                    <h2 className="text-3xl font-bold text-text-main flex items-center gap-3 capitalize">
+                    <h2 className="flex flex-wrap items-center gap-3 text-2xl font-bold capitalize text-text-main sm:text-3xl">
                         {categorieSlug ? <Hash className="w-8 h-8 text-accent" /> : <Code2 className="w-8 h-8 text-accent" />}
                         {categorieSlug ? numeCategorieActive : "Toate Problemele"}
                     </h2>
@@ -125,18 +125,18 @@ export default function ToateProblemele() {
                                 <Link 
                                     to={`/rezolvare/${problema.id}`} 
                                     key={problema.id}
-                                    className="group bg-ink border border-border p-5 rounded-2xl flex flex-col gap-3 hover:border-accent hover:shadow-lg transition-all duration-300"
+                                    className="group flex flex-col gap-3 rounded-2xl border border-border bg-ink p-4 transition-all duration-300 hover:border-accent hover:shadow-lg sm:p-5"
                                 >
-                                    <div className="flex items-start justify-between w-full">
-                                        <div className="flex items-start gap-4">
+                                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div className="flex min-w-0 items-start gap-4">
                                             <div className="text-muted group-hover:text-accent transition-colors mt-1">
                                                 <Code2 className="w-5 h-5" />
                                             </div>
-                                            <div>
+                                            <div className="min-w-0">
                                                 <h4 className="text-text-main font-bold group-hover:text-accent transition-colors text-lg">
                                                     {problema.title}
                                                 </h4>
-                                                <div className="flex items-center gap-2 mt-1">
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
                                                     <span className={`px-2.5 py-0.5 border rounded-lg text-[10px] font-bold uppercase tracking-wider ${getDifficultyStyle(problema.difficulty)}`}>
                                                         {problema.difficulty}
                                                     </span>
@@ -150,7 +150,7 @@ export default function ToateProblemele() {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-5 shrink-0">
+                                        <div className="flex shrink-0 items-center gap-3 sm:gap-5">
                                             <div className="flex items-center gap-1 text-sm font-bold text-easy bg-easy/10 px-3 py-1.5 rounded-xl border border-easy/20">
                                                 <Star className="w-4 h-4 fill-easy" />
                                                 {problema.xp_reward} XP
@@ -160,7 +160,7 @@ export default function ToateProblemele() {
                                     </div>
 
                                     {problema.description && (
-                                        <div className="pl-9">
+                                        <div className="sm:pl-9">
                                             <p className="text-sm text-muted line-clamp-2">
                                                 {problema.description}
                                             </p>
