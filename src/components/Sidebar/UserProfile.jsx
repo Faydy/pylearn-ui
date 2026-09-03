@@ -1,4 +1,5 @@
 import { useAuth } from "../../AuthContext";
+import { Link } from 'react-router-dom';
 import { getAvatarUrl, getProfileAvatarSeed, normalizeProfileRole, PROFILE_ROLES } from '../../utils/profile';
 
 export default function UserProfile() {
@@ -13,7 +14,7 @@ export default function UserProfile() {
   const role = PROFILE_ROLES.find((item) => item.value === normalizeProfileRole(profile?.role || user.user_metadata?.role));
 
   return (
-    <div className="flex mt-2 items-center gap-3 p-2 rounded-xl hover:bg-[#2c2c2c] transition-colors cursor-pointer">
+    <Link to="/profil" className="flex mt-2 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-[#2c2c2c]">
       <img 
         src={getAvatarUrl(avatarSeed)}
         alt="Avatar" 
@@ -23,6 +24,6 @@ export default function UserProfile() {
         <span className="text-sm font-semibold black:text-text-main">{displayName}</span>
         <span className="text-xs text-gray-400">{role?.label || user.email}</span>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, SearchX, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { getAvatarUrl, getProfileAvatarSeed } from '../../utils/profile';
 import { formatXp, getRankClasses } from '../../utils/leaderboard';
 
@@ -24,7 +25,7 @@ export default function ScoreLeaderboard({ entries, loading, currentUserId, curr
             const rank = firstRank + index;
             const isCurrentUser = entry.id === currentUserId;
 
-            return <div key={entry.id} className={`grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition-colors sm:px-6 ${isCurrentUser ? 'bg-accent/10' : 'hover:bg-sidebar-hover/60'}`}><span className={`flex h-9 w-9 items-center justify-center rounded-xl border text-sm font-black ${getRankClasses(rank)}`}>{rank}</span><div className="flex min-w-0 items-center gap-3"><img src={getAvatarUrl(getProfileAvatarSeed(entry))} alt="" className="h-10 w-10 shrink-0 rounded-full border border-border bg-sidebar" /><div className="min-w-0"><p className="truncate font-bold text-text-main">{entry.username || 'Utilizator PyLearn'}{isCurrentUser && <span className="ml-2 text-xs font-bold text-accent">Tu</span>}</p><p className="mt-0.5 text-xs text-muted">Explorator PyLearn</p></div></div><p className="whitespace-nowrap text-sm font-black text-accent">{formatXp(entry.total_xp)}</p></div>;
+            return <div key={entry.id} className={`grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition-colors sm:px-6 ${isCurrentUser ? 'bg-accent/10' : 'hover:bg-sidebar-hover/60'}`}><span className={`flex h-9 w-9 items-center justify-center rounded-xl border text-sm font-black ${getRankClasses(rank)}`}>{rank}</span><Link to={`/profil/${entry.id}`} className="flex min-w-0 items-center gap-3 rounded-lg outline-none ring-accent focus-visible:ring-2"><img src={getAvatarUrl(getProfileAvatarSeed(entry))} alt="" className="h-10 w-10 shrink-0 rounded-full border border-border bg-sidebar" /><span className="min-w-0"><span className="block truncate font-bold text-text-main transition-colors hover:text-accent">{entry.username || 'Utilizator PyLearn'}{isCurrentUser && <span className="ml-2 text-xs font-bold text-accent">Tu</span>}</span><span className="mt-0.5 block text-xs text-muted">Explorator PyLearn</span></span></Link><p className="whitespace-nowrap text-sm font-black text-accent">{formatXp(entry.total_xp)}</p></div>;
           })}
         </div>
       )}

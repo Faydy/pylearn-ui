@@ -1,4 +1,5 @@
 import { Crown, Medal, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { getAvatarUrl, getProfileAvatarSeed } from '../../utils/profile';
 import { formatXp } from '../../utils/leaderboard';
 
@@ -55,10 +56,10 @@ export default function ScorePodium({ entries, loading }) {
             <div className="relative flex items-start justify-between gap-3">
               <div>
                 <p className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] ${style.iconColor}`}><Icon className="h-4 w-4" />{style.label}</p>
-                <div className="mt-5 flex items-center gap-3">
+                <Link to={`/profil/${entry.id}`} className="mt-5 flex items-center gap-3 rounded-lg outline-none ring-accent focus-visible:ring-2">
                   <img src={getAvatarUrl(getProfileAvatarSeed(entry))} alt="" className="h-12 w-12 rounded-full border border-border bg-sidebar" />
-                  <div className="min-w-0"><h2 className="truncate text-lg font-bold text-text-main">{entry.username || 'Utilizator PyLearn'}</h2><p className="mt-1 text-sm font-bold text-accent">{formatXp(entry.total_xp)}</p></div>
-                </div>
+                  <div className="min-w-0"><h2 className="truncate text-lg font-bold text-text-main transition-colors hover:text-accent">{entry.username || 'Utilizator PyLearn'}</h2><p className="mt-1 text-sm font-bold text-accent">{formatXp(entry.total_xp)}</p></div>
+                </Link>
               </div>
               <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-black ${rank === 1 ? 'border-accent/40 bg-accent text-ink' : 'border-border bg-background text-text-main'}`}>#{rank}</span>
             </div>

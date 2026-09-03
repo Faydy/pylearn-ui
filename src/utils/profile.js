@@ -23,14 +23,45 @@ export const AVATAR_OPTIONS = [
   'Milo',
   'Sofia',
   'Theo',
+  'Luna',
+  'Leo',
+  'Maya',
+  'Noah',
+  'Iris',
+  'Alex',
 ];
+
+const FEMININE_AVATAR_SEEDS = new Set([
+  'Ada',
+  'Nova',
+  'Sofia',
+  'Luna',
+  'Maya',
+  'Iris',
+]);
+
+const MASCULINE_AVATAR_SEEDS = new Set([
+  'Felix',
+  'Milo',
+  'Theo',
+  'Leo',
+  'Noah',
+  'Alex',
+]);
 
 export function normalizeProfileRole(role) {
   return role === 'teacher' ? 'profesor' : role;
 }
 
 export function getAvatarUrl(seed) {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'pyLearn')}`;
+  const normalizedSeed = seed || 'pyLearn';
+  const appearance = FEMININE_AVATAR_SEEDS.has(normalizedSeed)
+    ? '&topVariant=straight01,straight02,bun,curly,curvy,longButNotTooLong&facialHairProbability=0'
+    : MASCULINE_AVATAR_SEEDS.has(normalizedSeed)
+      ? '&topVariant=shortFlat,shortRound,shortWaved,theCaesar,theCaesarAndSidePart,shavedSides&facialHairVariant=beardLight,beardMedium,moustacheFancy&facialHairProbability=100'
+      : '';
+
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(normalizedSeed)}${appearance}`;
 }
 
 export function getProfileAvatarSeed(profile, user) {

@@ -48,3 +48,33 @@ export function hasUnreadAnnouncements(announcements, lastSeenAt) {
     return publishedTimestamp && publishedTimestamp > lastSeenTimestamp;
   });
 }
+
+export function formatNotificationDate(dateValue) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return 'Dată indisponibilă';
+
+  const elapsedMs = Date.now() - date.getTime();
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+  if (elapsedMinutes < 1) return 'acum';
+  if (elapsedMinutes < 60) return `acum ${elapsedMinutes} min`;
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `acum ${elapsedHours} ${elapsedHours === 1 ? 'oră' : 'ore'}`;
+
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  if (elapsedDays === 1) return 'ieri';
+  if (elapsedDays < 7) return `acum ${elapsedDays} zile`;
+
+  return new Intl.DateTimeFormat('ro-RO', {
+    day: 'numeric',
+    month: 'short',
+    year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  }).format(date);
+}
+
+export function mergeNotifications(currentNotifications, notification, limit) {
+  const withoutDuplicate = currentNotifications.filter((current) => current.id !== notification.id);
+  return [notification, ...withoutDuplicate]
+    .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime())
+    .slice(0, limit);
+}

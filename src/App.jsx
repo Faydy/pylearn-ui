@@ -22,6 +22,7 @@ import EditorTema from './pages/EditorTema';
 import Clase from './pages/Clase';
 import DetaliiClasa from './pages/DetaliiClasa';
 import Anunturi from './pages/Anunturi';
+import Notificari from './pages/Notificari';
 
 import Auth from './Auth';
 import CreareProfil from './CreareProfil';
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/rezolvare/:id" element={<RezolvareProblema />} />
           <Route path="/scoruri" element={<Scoruri />} />
           <Route path="/anunturi" element={<Anunturi />} />
+          <Route path="/notificari" element={user ? <Notificari /> : <Navigate to="/login" replace />} />
           <Route path="/teme" element={<Teme />} />
           <Route path="/teme/noua" element={<EditorTema />} />
           <Route path="/teme/:assignmentId/edit" element={<EditorTema />} />
@@ -77,6 +79,10 @@ export default function App() {
           
           <Route
             path="/profil"
+            element={user ? (profileComplete ? <Profile /> : <Navigate to="/creare-profil" replace />) : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/profil/:userId"
             element={user ? (profileComplete ? <Profile /> : <Navigate to="/creare-profil" replace />) : <Navigate to="/login" replace />}
           />
           

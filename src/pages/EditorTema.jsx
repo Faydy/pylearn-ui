@@ -93,13 +93,12 @@ export default function EditorTema() {
         title: normalizedTitle,
         description: values.description.trim() || null,
         due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
-        published: values.published,
       };
 
       if (editing) {
         const { data, error } = await supabase
           .from('assignments')
-          .update(payload)
+          .update({ ...payload, published: assignment.published })
           .eq('id', assignment.id)
           .select('id, classroom_id, created_by, title, description, due_at, published')
           .single();
@@ -115,7 +114,7 @@ export default function EditorTema() {
       } else {
         const { data, error } = await supabase
           .from('assignments')
-          .insert({ ...payload, created_by: user.id })
+          .insert({ ...payload, created_by: user.id, published: false })
           .select('id, classroom_id, created_by, title, description, due_at, published')
           .single();
         if (error) throw error;
@@ -132,6 +131,17 @@ export default function EditorTema() {
         .from('assignment_problems')
         .insert(relationshipRows);
       if (relationshipError) throw relationshipError;
+
+      if (savedAssignment.published !== values.published) {
+        const { data, error: publishError } = await supabase
+          .from('assignments')
+          .update({ published: values.published })
+          .eq('id', savedAssignment.id)
+          .select('id, classroom_id, created_by, title, description, due_at, published')
+          .single();
+        if (publishError) throw publishError;
+        savedAssignment = data;
+      }
 
       navigate(`/teme/${savedAssignment.id}`, { replace: true });
     } catch (saveError) {

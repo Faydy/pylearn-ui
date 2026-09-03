@@ -131,9 +131,9 @@ export default function Clasament() {
                       {user.rank}
                     </div>
                     
-                    <span className={`text-sm ${user.isMe ? 'text-text-main font-bold' : 'text-muted font-medium'}`}>
+                    <NavLink to={`/profil/${user.id}`} className={`text-sm transition-colors hover:text-accent ${user.isMe ? 'text-text-main font-bold' : 'text-muted font-medium'}`}>
                       {user.username}
-                    </span>
+                    </NavLink>
                   </div>
 
                   <div className="text-sm font-bold text-text-main">
