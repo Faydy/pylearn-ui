@@ -10,6 +10,7 @@ import { AVATAR_OPTIONS, getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } fro
 import { normalizeUsername } from '../utils/username';
 
 const SUBMISSIONS_PREVIEW_SIZE = 5;
+const PUBLIC_SUBMISSIONS_PAGE_SIZE = 12;
 
 export default function Profile() {
   const { user, refreshAuth } = useAuth();
@@ -30,6 +31,10 @@ export default function Profile() {
   const [submissions, setSubmissions] = useState([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [submissionsError, setSubmissionsError] = useState('');
+  const [publicSubmissions, setPublicSubmissions] = useState([]);
+  const [publicSubmissionsLoading, setPublicSubmissionsLoading] = useState(false);
+  const [publicSubmissionsError, setPublicSubmissionsError] = useState('');
+  const [hasMorePublicSubmissions, setHasMorePublicSubmissions] = useState(false);
   const normalizedPreview = normalizeUsername(username);
 
   const loadSolvedCount = useCallback(async () => {
@@ -61,6 +66,35 @@ export default function Profile() {
     setSubmissionsLoading(false);
   }, [ownProfile, user]);
 
+  const loadPublicSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
+    if (ownProfile || !user || !viewedUserId) return;
+
+    setPublicSubmissionsLoading(true);
+    setPublicSubmissionsError('');
+    const { data, error } = await supabase.rpc('get_public_user_submissions', {
+      p_profile_user_id: viewedUserId,
+      p_offset: offset,
+      p_limit: PUBLIC_SUBMISSIONS_PAGE_SIZE + 1,
+    });
+
+    if (error) {
+      setPublicSubmissionsError('Nu am putut încărca soluțiile.');
+      setPublicSubmissionsLoading(false);
+      return;
+    }
+
+    const receivedSubmissions = data || [];
+    const nextSubmissions = receivedSubmissions.slice(0, PUBLIC_SUBMISSIONS_PAGE_SIZE);
+    setPublicSubmissions((current) => {
+      if (!append) return nextSubmissions;
+
+      const knownIds = new Set(current.map((submission) => submission.submission_id));
+      return [...current, ...nextSubmissions.filter((submission) => !knownIds.has(submission.submission_id))];
+    });
+    setHasMorePublicSubmissions(receivedSubmissions.length > PUBLIC_SUBMISSIONS_PAGE_SIZE);
+    setPublicSubmissionsLoading(false);
+  }, [ownProfile, user, viewedUserId]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -76,6 +110,9 @@ export default function Profile() {
       setSolvedCount(0);
       setSubmissions([]);
       setSubmissionsError('');
+      setPublicSubmissions([]);
+      setPublicSubmissionsError('');
+      setHasMorePublicSubmissions(false);
 
       try {
         if (ownProfile) {
@@ -147,6 +184,12 @@ export default function Profile() {
     loadOwnSubmissions();
     return undefined;
   }, [loadOwnSubmissions, ownProfile, user]);
+
+  useEffect(() => {
+    if (ownProfile || !user) return undefined;
+    loadPublicSubmissions();
+    return undefined;
+  }, [loadPublicSubmissions, ownProfile, user]);
 
   const loadSubmissionSolution = async (submissionId) => {
     const { data, error } = await supabase.rpc('get_own_submission', {
@@ -227,6 +270,23 @@ export default function Profile() {
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+        </div>
+      )}
+
+      {!ownProfile && (
+        <div className="mt-6">
+          <SubmittedSolutions
+            submissions={publicSubmissions}
+            loading={publicSubmissionsLoading}
+            error={publicSubmissionsError}
+            hasMore={hasMorePublicSubmissions}
+            onLoadMore={() => loadPublicSubmissions({ offset: publicSubmissions.length, append: true })}
+            title="Soluții încercate"
+            description="Vezi activitatea recentă de rezolvare a problemelor."
+            codePresentation="modal"
+            emptyTitle="Nicio soluție încercată încă."
+            emptyDescription="Acest utilizator nu a trimis încă soluții la probleme."
+          />
         </div>
       )}
 
