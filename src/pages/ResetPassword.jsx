@@ -59,11 +59,26 @@ export default function ResetPassword() {
     setLoading(true);
     setMessage({ text: '', type: '' });
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setRecoveryStatus('invalid');
+        return;
+      }
+
+      // A recovery redirect may leave an almost-expired access token in storage.
+      // Refresh it before updateUser so the request always uses the current session.
+      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshedData.session) {
+        setRecoveryStatus('invalid');
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setRecoveryStatus('success');
       setMessage({ text: 'Parola a fost schimbată cu succes.', type: 'success' });
     } catch (error) {
+      console.error('Eroare la actualizarea parolei:', error.message);
       setMessage({ text: getAuthErrorMessage(error, 'Parola nu a putut fi schimbată. Solicită un link nou.'), type: 'error' });
     } finally {
       setLoading(false);

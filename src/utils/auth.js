@@ -7,6 +7,9 @@ export function getAuthErrorMessage(error, fallback = 'A apărut o eroare. Înce
   if (message.includes('email not confirmed') || message.includes('email not verified')) return 'Adresa ta de email nu a fost încă verificată.';
   if (message.includes('user already registered') || message.includes('already been registered')) return 'Există deja un cont asociat acestei adrese de email.';
   if (message.includes('password should be at least') || message.includes('password must be at least')) return 'Parola trebuie să aibă minimum 8 caractere.';
+  if (message.includes('different from the old password') || message.includes('same as the old password')) return 'Parola nouă trebuie să fie diferită de parola anterioară.';
+  if (message.includes('reauthentication') || message.includes('nonce')) return 'Sesiunea de securitate a expirat. Solicită un link nou de resetare.';
+  if (message.includes('auth session missing') || message.includes('session missing') || message.includes('invalid refresh token')) return 'Sesiunea linkului de resetare a expirat. Solicită un link nou.';
   if (message.includes('rate limit') || message.includes('too many requests')) return 'Ai făcut prea multe solicitări. Încearcă din nou peste câteva momente.';
   if (message.includes('expired') || message.includes('invalid') || message.includes('otp')) return 'Linkul nu mai este valid sau a expirat.';
 
