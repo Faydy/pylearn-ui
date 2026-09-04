@@ -1,24 +1,29 @@
 import { useEffect, useState } from 'react';
 import { FolderGit, Loader2, Lock, Mail } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from './components/auth/AuthLayout';
 import { supabase } from './supabaseClient';
 import { getAuthErrorMessage, isUnverifiedEmailError, rememberPendingVerificationEmail } from './utils/auth';
 
 export default function Auth({ initialMode = 'login' }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(initialMode !== 'register');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState({ text: '', type: '' });
+  const [message, setMessage] = useState(() => location.state?.successMessage
+    ? { text: location.state.successMessage, type: 'success' }
+    : { text: '', type: '' });
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   useEffect(() => {
     setIsLogin(initialMode !== 'register');
-    setMessage({ text: '', type: '' });
+    setMessage(location.state?.successMessage
+      ? { text: location.state.successMessage, type: 'success' }
+      : { text: '', type: '' });
     setUnverifiedEmail('');
-  }, [initialMode]);
+  }, [initialMode, location.state?.successMessage]);
 
   const handleAuth = async (event) => {
     event.preventDefault();

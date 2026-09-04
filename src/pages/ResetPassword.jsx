@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, Lock, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -67,8 +67,15 @@ export default function ResetPassword() {
 
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      setRecoveryStatus('success');
-      setMessage({ text: 'Parola a fost schimbată cu succes.', type: 'success' });
+
+      // A recovery session must not remain signed in after the password changes.
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) throw signOutError;
+
+      navigate('/login', {
+        replace: true,
+        state: { successMessage: 'Parola a fost modificată cu succes.' },
+      });
     } catch (error) {
       console.error('Eroare la actualizarea parolei:', error.message);
       setMessage({ text: getAuthErrorMessage(error, 'Parola nu a putut fi schimbată. Solicită un link nou.'), type: 'error' });
@@ -77,21 +84,12 @@ export default function ResetPassword() {
     }
   };
 
-  const returnToLogin = async () => {
-    await supabase.auth.signOut();
-    navigate('/login', { replace: true });
-  };
-
   if (recoveryStatus === 'checking') {
     return <AuthLayout title="Se verifică linkul..."><div className="flex justify-center py-8"><Loader2 className="h-7 w-7 animate-spin text-accent" /></div></AuthLayout>;
   }
 
   if (recoveryStatus === 'invalid') {
     return <AuthLayout title="Link invalid"><div className="rounded-xl border border-hard/20 bg-hard/10 p-4 text-center"><TriangleAlert className="mx-auto h-7 w-7 text-hard" /><p className="mt-3 font-bold text-text-main">Linkul de resetare nu mai este valid sau a expirat.</p></div><Link to="/forgot-password" className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-bold text-ink transition-colors hover:bg-accent/90"><KeyRound className="h-5 w-5" />Solicită un link nou</Link><Link to="/login" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />Înapoi la autentificare</Link></AuthLayout>;
-  }
-
-  if (recoveryStatus === 'success') {
-    return <AuthLayout title="Parolă actualizată"><div className="rounded-xl border border-easy/20 bg-easy/10 p-4 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-easy" /><p className="mt-3 font-bold text-text-main">{message.text}</p><p className="mt-2 text-sm text-muted">Te poți autentifica folosind parola nouă.</p></div><button type="button" onClick={returnToLogin} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-bold text-ink transition-colors hover:bg-accent/90">Autentifică-te</button></AuthLayout>;
   }
 
   return (

@@ -37,7 +37,7 @@ export default function RezolvareProblema() {
 
         setSubmissionsLoading(true);
         setSubmissionsError('');
-        const { data, error } = await supabase.rpc('get_own_problem_submissions', {
+        const { data, error } = await supabase.rpc('get_own_problem_submission_history', {
             p_problem_id: problemId,
             p_offset: offset,
             p_limit: PROBLEM_SUBMISSIONS_PAGE_SIZE + 1,
@@ -265,20 +265,8 @@ export default function RezolvareProblema() {
 
         setSubmitResult(data);
 
-        // Render the current submission immediately, then refresh the complete
-        // persisted history for this problem.
-        setProblemSubmissions((current) => [{
-            submission_id: `local-${Date.now()}`,
-            problem_id: Number(id),
-            problem_title: problema?.title || '',
-            submission_status: data.status,
-            submitted_at: new Date().toISOString(),
-            source_code: code,
-            runtime_ms: data.runtimeMs ?? null,
-            memory_kb: data.memoryKb ?? null,
-        }, ...current]);
         setCanViewSubmissions(true);
-        void loadProblemSubmissions();
+        await loadProblemSubmissions();
 
         if (data.status === 'accepted') {
             setIsSolved(true);
