@@ -27,6 +27,7 @@ export default function Notificari() {
     let query = supabase
       .from('notifications')
       .select('id, type, title, message, link, is_read, created_at')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE);
     if (filter === 'unread') query = query.eq('is_read', false);
@@ -58,6 +59,24 @@ export default function Notificari() {
           setNotifications((current) => mergeNotifications(current, payload.new, PAGE_SIZE));
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const notification = payload.new;
+          setNotifications((current) => {
+            if (filter === 'unread' && notification.is_read) {
+              return current.filter((item) => item.id !== notification.id);
+            }
+
+            return current.map((item) => (
+              item.id === notification.id
+                ? { ...item, ...notification }
+                : item
+            ));
+          });
+        },
+      )
       .subscribe();
 
     return () => {
@@ -71,6 +90,7 @@ export default function Notificari() {
     const { error: updateError } = await supabase
       .from('notifications')
       .update({ is_read: true })
+      .eq('user_id', userId)
       .eq('id', notification.id);
     if (updateError) {
       setError('Notificarea nu a putut fi marcată ca citită.');
@@ -98,6 +118,7 @@ export default function Notificari() {
     const { error: updateError } = await supabase
       .from('notifications')
       .update({ is_read: true })
+      .eq('user_id', userId)
       .eq('is_read', false);
     if (updateError) {
       setError('Notificările nu au putut fi actualizate.');

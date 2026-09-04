@@ -20,6 +20,7 @@ export default function TeorieCapitol() {
     const loadChapter = async () => {
       setLoading(true);
       setError('');
+      setCompletedIds(new Set());
       const [chapterResponse, lessonsResponse] = await Promise.all([
         supabase.from('chapters').select('id, title, section, grade_id, grades(id, name)').eq('id', chapterId).maybeSingle(),
         supabase.from('theory_lessons').select('id, title, summary, order_index, estimated_read_minutes').eq('chapter_id', chapterId).eq('published', true).order('order_index', { ascending: true }).order('id', { ascending: true }),

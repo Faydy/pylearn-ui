@@ -198,8 +198,8 @@ export default function TopHeader({title = "Dashboard"}) {
         <div className="hidden h-6 w-px bg-border sm:block"></div>
 
         {/* 4. Butonul pentru Trecere pe Light Mode */}
-        <button type="button" aria-label={isDark ? 'Activează tema luminoasă' : 'Activează tema întunecată'} aria-pressed={!isDark} className="flex items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1.5 text-sm font-bold text-text-main transition-colors hover:bg-sidebar-hover sm:px-3" onClick={() => setIsDark((currentTheme) => !currentTheme)}>
-          {isDark ? <Sun className="w-4 h-4 text-accent" /> : <Moon className="w-4 h-4 text-accent" />}
+        <button type="button" aria-label={isDark ? 'Activează tema luminoasă' : 'Activează tema întunecată'} aria-pressed={!isDark} className="flex items-center gap-2 rounded-full border border-border bg-background p-2.5 text-sm font-bold text-text-main transition-colors hover:bg-sidebar-hover sm:px-3 sm:py-1.5" onClick={() => setIsDark((currentTheme) => !currentTheme)}>
+          {isDark ? <Sun className="h-6 w-6 text-accent sm:h-4 sm:w-4" /> : <Moon className="h-6 w-6 text-accent sm:h-4 sm:w-4" />}
           <span className="hidden sm:inline">{isDark ? 'Light mode' : 'Dark mode'}</span>
         </button>
         

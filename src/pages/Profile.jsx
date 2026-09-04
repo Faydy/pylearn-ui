@@ -100,12 +100,17 @@ export default function Profile() {
 
           if (ownProfileError?.code === 'PGRST116') {
             const temporaryUsername = `user_${authData.user.id.substring(0, 5)}`;
-            const { data: createdRecord, error: createError } = await supabase
+            const { error: createError } = await supabase
               .from('profiles')
-              .insert([{ id: authData.user.id, username: temporaryUsername }])
-              .select()
-              .single();
+              .upsert({ id: authData.user.id, username: temporaryUsername }, { onConflict: 'id' });
             if (createError) throw createError;
+
+            const { data: createdRecord, error: reloadError } = await supabase
+              .from('profiles')
+              .select()
+              .eq('id', authData.user.id)
+              .single();
+            if (reloadError) throw reloadError;
             ownRecord = createdRecord;
           } else if (ownProfileError) {
             throw ownProfileError;

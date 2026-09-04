@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-export default function SidebarComponent({name = "Component", icon: Icon, selected = false, to = "/"}){
+export default function SidebarComponent({name = "Component", icon: Icon, to = "/"}){
     const location = useLocation();
     const isActive = location.pathname === to;
     return(

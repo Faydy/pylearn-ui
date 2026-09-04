@@ -105,7 +105,7 @@ export default function Clasament() {
             <Loader2 className="w-6 h-6 animate-spin text-muted" />
           </div>
         ) : leaderboardData.length > 0 ? (
-          leaderboardData.map((user, index) => {
+          leaderboardData.map((user) => {
             // Dacă am sărit de la locul 4 la locul 150, punem un mic separator vizual (o linie subțire)
             const showSeparator = user.isSeparator;
 

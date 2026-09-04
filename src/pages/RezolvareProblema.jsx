@@ -9,8 +9,24 @@ import {
 } from 'lucide-react';
 import TopHeader from "../components/MainArea/TopHeader";
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
+import { getApiEndpoint } from '../utils/api';
 
 const PROBLEM_SUBMISSIONS_PAGE_SIZE = 20;
+
+async function parseApiJson(response) {
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+function getApiErrorMessage(response, data, fallback) {
+    const serverMessage = data?.error || data?.output;
+    if (serverMessage) return serverMessage;
+    if (!response.ok) return `${fallback} HTTP ${response.status}.`;
+    return fallback;
+}
 
 export default function RezolvareProblema() {
     const { id } = useParams();
@@ -92,12 +108,9 @@ export default function RezolvareProblema() {
 
                 if (problemError) throw problemError;
 
-                // Testele ascunse NU se mai cer deloc din frontend — filtrare pe server, nu în JS
+                // The public client can obtain sample cases only through the scoped RPC.
                 const { data: sampleTests, error: sampleError } = await supabase
-                    .from('test_cases')
-                    .select('input, expected_output, is_sample')
-                    .eq('problem_id', id)
-                    .eq('is_sample', true);
+                    .rpc('get_sample_test_cases', { p_problem_id: Number(id) });
 
                 if (sampleError) throw sampleError;
 
@@ -165,11 +178,12 @@ export default function RezolvareProblema() {
     setHasError(false);
 
     try {
+        const runEndpoint = getApiEndpoint('/run');
         const sampleInput =
             problema.test_cases?.[0]?.input?.replace(/\\n/g, '\n') || '';
 
         const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/run`,
+            runEndpoint,
             {
                 method: 'POST',
                 headers: {
@@ -182,15 +196,18 @@ export default function RezolvareProblema() {
             }
         );
 
-        const data = await response.json();
+        const data = await parseApiJson(response);
 
-        if (data.success) {
+        if (response.ok && data?.success) {
             setOutput(data.output || '(fără output)');
             setHasError(false);
         } else {
             setOutput(
-                data.output ||
-                'Eroare necunoscută la execuție.'
+                getApiErrorMessage(
+                    response,
+                    data,
+                    'Eroare necunoscută la execuție.',
+                )
             );
 
             setHasError(true);
@@ -229,8 +246,9 @@ export default function RezolvareProblema() {
             return;
         }
 
+        const submitEndpoint = getApiEndpoint('/submit');
         const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/submit`,
+            submitEndpoint,
             {
                 method: 'POST',
 
@@ -248,16 +266,16 @@ export default function RezolvareProblema() {
             }
         );
 
-        const data = await response.json();
+        const data = await parseApiJson(response);
 
         if (!response.ok) {
             setSubmitResult({
                 status: 'error',
-
-                error:
-                    data.error ||
-                    data.output ||
-                    'Eroare necunoscută'
+                error: getApiErrorMessage(
+                    response,
+                    data,
+                    'Eroare necunoscută la trimitere.',
+                ),
             });
 
             return;

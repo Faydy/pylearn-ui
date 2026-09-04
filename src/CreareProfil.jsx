@@ -94,6 +94,11 @@ export default function CreareProfil() {
     event.preventDefault();
     setMessage({ text: '', type: '' });
 
+    if (!user) {
+      setMessage({ text: 'Sesiunea ta a expirat. Autentifică-te din nou pentru a continua.', type: 'error' });
+      return;
+    }
+
     const normalizedUsername = normalizeUsername(username);
 
     if (!emailVerified) {
@@ -111,7 +116,7 @@ export default function CreareProfil() {
       return;
     }
 
-    if (!role) {
+    if (!PROFILE_ROLES.some((option) => option.value === role)) {
       setMessage({ text: 'Alege rolul tău.', type: 'error' });
       return;
     }

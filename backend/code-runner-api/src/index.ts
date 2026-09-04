@@ -15,12 +15,29 @@ interface Env {
 
 const JUDGE0_URL = "https://ce.judge0.com";
 const PYTHON_LANGUAGE_ID = 100;
+const MAX_CODE_LENGTH = 20_000;
+const MAX_INPUT_LENGTH = 10_000;
+const MAX_OUTPUT_LENGTH = 12_000;
+const JUDGE0_SUBMISSION_TIMEOUT_MS = 8_000;
+const JUDGE0_RESULT_TIMEOUT_MS = 4_000;
+const ALLOWED_ORIGINS = new Set([
+	"https://pylearn.ro",
+	"https://www.pylearn.ro",
+	"http://localhost:5173",
+	"http://127.0.0.1:5173",
+]);
 
-const corsHeaders = {
-	"Access-Control-Allow-Origin": "https://pylearn.ro",
-	"Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-	"Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+class HttpError extends Error {
+	status: number;
+
+	constructor(
+		status: number,
+		message: string
+	) {
+		super(message);
+		this.status = status;
+	}
+}
 
 // ======================================================
 // WORKER
@@ -31,11 +48,21 @@ export default {
 		request: Request,
 		env: Env
 	): Promise<Response> {
+		if (!isOriginAllowed(request)) {
+			return jsonResponse(
+				{
+					success: false,
+					error: "Origine neautorizată.",
+				},
+				403,
+				request
+			);
+		}
 
 		if (request.method === "OPTIONS") {
 			return new Response(null, {
 				status: 204,
-				headers: corsHeaders,
+				headers: createCorsHeaders(request),
 			});
 		}
 
@@ -51,7 +78,7 @@ export default {
 				message: "Code Runner API funcționează.",
 				supabaseUrlLoaded: !!env.SUPABASE_URL,
 				supabaseKeyLoaded: !!env.SUPABASE_SERVICE_ROLE_KEY,
-			});
+			}, 200, request);
 		}
 
 		// POST /run
@@ -75,7 +102,8 @@ export default {
 				success: false,
 				error: "Endpoint inexistent.",
 			},
-			404
+			404,
+			request
 		);
 	},
 };
@@ -87,18 +115,28 @@ export default {
 async function handleRun(
 	request: Request
 ): Promise<Response> {
+	const respond = (
+		data: unknown,
+		status = 200
+	) => jsonResponse(data, status, request);
 
 	try {
-		const body = await request.json() as {
+		const body = await readJsonBody<{
 			code?: string;
 			input?: string;
-		};
+		}>(request);
 
-		const code = body.code;
-		const input = body.input ?? "";
+		const code =
+			typeof body.code === "string"
+				? body.code
+				: "";
+		const input =
+			typeof body.input === "string"
+				? body.input
+				: "";
 
 		if (!code || typeof code !== "string") {
-			return jsonResponse(
+			return respond(
 				{
 					success: false,
 					output: "Nu a fost trimis cod Python.",
@@ -107,11 +145,21 @@ async function handleRun(
 			);
 		}
 
-		if (code.length > 20_000) {
-			return jsonResponse(
+		if (code.length > MAX_CODE_LENGTH) {
+			return respond(
 				{
 					success: false,
 					output: "Codul este prea lung.",
+				},
+				400
+			);
+		}
+
+		if (input.length > MAX_INPUT_LENGTH) {
+			return respond(
+				{
+					success: false,
+					output: "Inputul este prea lung.",
 				},
 				400
 			);
@@ -123,17 +171,21 @@ async function handleRun(
 		);
 
 		if (result.success) {
-			return jsonResponse({
+			return respond({
 				success: true,
-				output: result.output,
+				output: truncateOutput(
+					result.output
+				),
 				time: result.time,
 				memory: result.memory,
 			});
 		}
 
-		return jsonResponse({
+		return respond({
 			success: false,
-			output: result.output,
+			output: truncateOutput(
+				result.output
+			),
 			status: result.status,
 		});
 
@@ -141,17 +193,19 @@ async function handleRun(
 
 		console.error("RUN ERROR:", error);
 
-		const message =
-			error instanceof Error
-				? error.message
-				: "Eroare necunoscută";
+		const handledError =
+			getHttpError(
+				error,
+				"Eroare necunoscută."
+			);
 
-		return jsonResponse(
+		return respond(
 			{
 				success: false,
-				output: `Eroare server: ${message}`,
+				output:
+					handledError.message,
 			},
-			500
+			handledError.status
 		);
 	}
 }
@@ -164,6 +218,10 @@ async function handleSubmit(
 	request: Request,
 	env: Env
 ): Promise<Response> {
+	const respond = (
+		data: unknown,
+		status = 200
+	) => jsonResponse(data, status, request);
 
 	try {
 
@@ -175,7 +233,7 @@ async function handleSubmit(
 			!env.SUPABASE_URL ||
 			!env.SUPABASE_SERVICE_ROLE_KEY
 		) {
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -196,7 +254,7 @@ async function handleSubmit(
 			!authorization ||
 			!authorization.startsWith("Bearer ")
 		) {
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -212,7 +270,7 @@ async function handleSubmit(
 			);
 
 		if (!accessToken) {
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -257,7 +315,7 @@ async function handleSubmit(
 				userError
 			);
 
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -277,12 +335,15 @@ async function handleSubmit(
 		// ==================================================
 
 		const body =
-			await request.json() as {
+			await readJsonBody<{
 				code?: string;
 				problemId?: string | number;
-			};
+			}>(request);
 
-		const code = body.code;
+		const code =
+			typeof body.code === "string"
+				? body.code
+				: "";
 
 		const problemId =
 			Number(body.problemId);
@@ -291,7 +352,7 @@ async function handleSubmit(
 			!code ||
 			typeof code !== "string"
 		) {
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error: "Codul lipsește.",
@@ -300,8 +361,8 @@ async function handleSubmit(
 			);
 		}
 
-		if (code.length > 20_000) {
-			return jsonResponse(
+		if (code.length > MAX_CODE_LENGTH) {
+			return respond(
 				{
 					status: "error",
 					error:
@@ -315,7 +376,7 @@ async function handleSubmit(
 			!Number.isInteger(problemId) ||
 			problemId <= 0
 		) {
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -349,7 +410,7 @@ async function handleSubmit(
 				problemError
 			);
 
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -382,7 +443,7 @@ async function handleSubmit(
 				testsError
 			);
 
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -396,7 +457,7 @@ async function handleSubmit(
 			!tests ||
 			tests.length === 0
 		) {
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -566,7 +627,7 @@ async function handleSubmit(
 				progressError
 			);
 
-			return jsonResponse(
+			return respond(
 				{
 					status: "error",
 					error:
@@ -600,7 +661,7 @@ async function handleSubmit(
 		// 12. Returnăm rezultatul
 		// ==================================================
 
-		return jsonResponse({
+		return respond({
 			status:
 				finalStatus,
 
@@ -627,18 +688,19 @@ async function handleSubmit(
 			error
 		);
 
-		const message =
-			error instanceof Error
-				? error.message
-				: "Eroare necunoscută";
+		const handledError =
+			getHttpError(
+				error,
+				"Eroare necunoscută."
+			);
 
-		return jsonResponse(
+		return respond(
 			{
 				status: "error",
 				error:
-					`Eroare server: ${message}`,
+					handledError.message,
 			},
-			500
+			handledError.status
 		);
 	}
 }
@@ -658,8 +720,10 @@ async function executePython(
 	memory: number | null;
 }> {
 
-	const submissionResponse =
-		await fetch(
+	const submission =
+		await fetchJudge0Json<{
+			token?: string;
+		}>(
 			`${JUDGE0_URL}/submissions?base64_encoded=false&wait=false`,
 			{
 				method: "POST",
@@ -691,32 +755,15 @@ async function executePython(
 					enable_network:
 						false,
 				}),
-			}
+			},
+			JUDGE0_SUBMISSION_TIMEOUT_MS,
+			"Nu am putut porni execuția Python."
 		);
-
-	if (!submissionResponse.ok) {
-
-		const errorText =
-			await submissionResponse.text();
-
-		console.error(
-			"JUDGE0 SUBMISSION ERROR:",
-			errorText
-		);
-
-		throw new Error(
-			`Judge0 nu a putut porni execuția. HTTP ${submissionResponse.status}`
-		);
-	}
-
-	const submission =
-		await submissionResponse.json() as {
-			token?: string;
-		};
 
 	if (!submission.token) {
-		throw new Error(
-			"Judge0 nu a returnat token."
+		throw new HttpError(
+			502,
+			"Serviciul de execuție nu a returnat un token valid."
 		);
 	}
 
@@ -820,29 +867,15 @@ async function waitForResult(
 		attempt++
 	) {
 
-		const response =
-			await fetch(
+		const result =
+			await fetchJudge0Json<JudgeResult>(
 				`${JUDGE0_URL}/submissions/${token}` +
 				"?base64_encoded=false" +
-				"&fields=stdout,stderr,compile_output,message,status,time,memory"
+				"&fields=stdout,stderr,compile_output,message,status,time,memory",
+				undefined,
+				JUDGE0_RESULT_TIMEOUT_MS,
+				"Nu am putut obține rezultatul execuției."
 			);
-
-		if (!response.ok) {
-
-			const text =
-				await response.text();
-
-			console.error(
-				"JUDGE0 RESULT ERROR:",
-				text
-			);
-
-			throw new Error(
-				"Nu am putut obține rezultatul de la Judge0."
-			);
-		}
-
-		const result = (await response.json()) as JudgeResult;
 
 		// 1 = Queue
 		// 2 = Processing
@@ -896,6 +929,22 @@ function normalizeOutput(
 		.trim();
 }
 
+function truncateOutput(
+	value: string
+): string {
+	if (value.length <= MAX_OUTPUT_LENGTH) {
+		return value;
+	}
+
+	return (
+		value.slice(
+			0,
+			MAX_OUTPUT_LENGTH
+		) +
+		"\n\n...[output trunchiat]"
+	);
+}
+
 // ======================================================
 // SLEEP
 // ======================================================
@@ -919,7 +968,8 @@ function sleep(
 
 function jsonResponse(
 	data: unknown,
-	status = 200
+	status = 200,
+	request?: Request
 ): Response {
 
 	return new Response(
@@ -931,8 +981,195 @@ function jsonResponse(
 				"Content-Type":
 					"application/json; charset=utf-8",
 
-				...corsHeaders,
+				...createCorsHeaders(
+					request
+				),
 			},
 		}
+	);
+}
+
+function isOriginAllowed(
+	request: Request
+): boolean {
+	const origin =
+		request.headers.get("Origin");
+
+	return (
+		!origin ||
+		ALLOWED_ORIGINS.has(origin)
+	);
+}
+
+function createCorsHeaders(
+	request?: Request
+): Record<string, string> {
+	const headers: Record<string, string> = {
+		"Access-Control-Allow-Methods":
+			"POST, GET, OPTIONS",
+		"Access-Control-Allow-Headers":
+			"Content-Type, Authorization",
+		"Access-Control-Max-Age":
+			"86400",
+	};
+
+	const origin =
+		request?.headers.get("Origin");
+
+	if (
+		origin &&
+		ALLOWED_ORIGINS.has(origin)
+	) {
+		headers[
+			"Access-Control-Allow-Origin"
+		] = origin;
+		headers.Vary = "Origin";
+	}
+
+	return headers;
+}
+
+async function readJsonBody<T>(
+	request: Request
+): Promise<T> {
+	try {
+		return await request.json() as T;
+	} catch {
+		throw new HttpError(
+			400,
+			"Cererea nu conține JSON valid."
+		);
+	}
+}
+
+async function fetchJudge0Json<T>(
+	input: string,
+	init: RequestInit | undefined,
+	timeoutMs: number,
+	fallbackMessage: string
+): Promise<T> {
+	const response =
+		await fetchWithTimeout(
+			input,
+			init,
+			timeoutMs,
+			fallbackMessage
+		);
+
+	if (!response.ok) {
+		const errorText =
+			await response.text();
+
+		console.error(
+			"JUDGE0 ERROR:",
+			errorText
+		);
+
+		throw getJudge0HttpError(
+			response.status,
+			fallbackMessage
+		);
+	}
+
+	try {
+		return await response.json() as T;
+	} catch {
+		throw new HttpError(
+			502,
+			`${fallbackMessage} Serviciul a returnat un răspuns invalid.`
+		);
+	}
+}
+
+async function fetchWithTimeout(
+	input: string,
+	init: RequestInit | undefined,
+	timeoutMs: number,
+	fallbackMessage: string
+): Promise<Response> {
+	const controller =
+		new AbortController();
+	const timeoutId =
+		setTimeout(
+			() => controller.abort(),
+			timeoutMs
+		);
+
+	try {
+		return await fetch(input, {
+			...init,
+			signal: controller.signal,
+		});
+	} catch (error) {
+		if (isAbortError(error)) {
+			throw new HttpError(
+				504,
+				`${fallbackMessage} Serviciul a răspuns prea lent.`
+			);
+		}
+
+		throw new HttpError(
+			503,
+			`${fallbackMessage} Nu ne-am putut conecta la Judge0.`
+		);
+	} finally {
+		clearTimeout(timeoutId);
+	}
+}
+
+function getJudge0HttpError(
+	status: number,
+	fallbackMessage: string
+): HttpError {
+	if (status === 429) {
+		return new HttpError(
+			429,
+			"Serviciul de execuție este ocupat momentan. Încearcă din nou în câteva momente."
+		);
+	}
+
+	if (status >= 500) {
+		return new HttpError(
+			503,
+			"Serviciul de execuție este momentan indisponibil. Încearcă din nou puțin mai târziu."
+		);
+	}
+
+	return new HttpError(
+		502,
+		`${fallbackMessage} Judge0 a răspuns cu HTTP ${status}.`
+	);
+}
+
+function isAbortError(
+	error: unknown
+): boolean {
+	return (
+		error instanceof Error &&
+		error.name === "AbortError"
+	);
+}
+
+function getHttpError(
+	error: unknown,
+	fallbackMessage: string
+): HttpError {
+	if (error instanceof HttpError) {
+		return error;
+	}
+
+	if (
+		error instanceof Error &&
+		error.message
+	) {
+		return new HttpError(
+			500,
+			`Eroare server: ${error.message}`
+		);
+	}
+
+	return new HttpError(
+		500,
+		`Eroare server: ${fallbackMessage}`
 	);
 }

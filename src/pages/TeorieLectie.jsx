@@ -28,6 +28,7 @@ export default function TeorieLectie() {
       setLoading(true);
       setError('');
       setProgressError('');
+      setCompletedIds(new Set());
       const { data: lessonRow, error: lessonError } = await supabase.from('theory_lessons').select('id, title, content, summary, chapter_id, order_index, estimated_read_minutes, chapters!inner(id, title, section, grade_id, grades(id, name))').eq('id', theoryId).maybeSingle();
       if (cancelled) return;
       if (lessonError || !lessonRow) {

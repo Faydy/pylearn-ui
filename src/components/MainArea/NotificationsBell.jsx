@@ -34,11 +34,13 @@ export default function NotificationsBell() {
       supabase
         .from('notifications')
         .select('id, type, title, message, link, is_read, created_at')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(NOTIFICATION_LIMIT),
       supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
         .eq('is_read', false),
     ]);
 
@@ -75,6 +77,26 @@ export default function NotificationsBell() {
           if (!alreadyLoaded && !notification.is_read) setUnreadCount((current) => current + 1);
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const notification = payload.new;
+          const previousNotification = payload.old;
+
+          setNotifications((current) => current.map((item) => (
+            item.id === notification.id
+              ? { ...item, ...notification }
+              : item
+          )));
+
+          if (!previousNotification.is_read && notification.is_read) {
+            setUnreadCount((current) => Math.max(0, current - 1));
+          } else if (previousNotification.is_read && !notification.is_read) {
+            setUnreadCount((current) => current + 1);
+          }
+        },
+      )
       .subscribe();
 
     return () => {
@@ -104,6 +126,7 @@ export default function NotificationsBell() {
     const { error: updateError } = await supabase
       .from('notifications')
       .update({ is_read: true })
+      .eq('user_id', userId)
       .eq('id', notification.id);
     if (updateError) {
       setError('Notificarea nu a putut fi marcată ca citită.');
@@ -131,6 +154,7 @@ export default function NotificationsBell() {
     const { error: updateError } = await supabase
       .from('notifications')
       .update({ is_read: true })
+      .eq('user_id', userId)
       .eq('is_read', false);
     if (updateError) {
       setError('Notificările nu au putut fi actualizate.');
@@ -155,11 +179,11 @@ export default function NotificationsBell() {
         aria-label="Notificări"
         aria-expanded={open}
         aria-controls="notifications-menu"
-        className="relative flex h-5 w-5 items-center justify-center text-muted transition-colors hover:text-text-main disabled:cursor-wait"
+        className="relative flex h-11 w-11 items-center justify-center text-muted transition-colors hover:text-text-main disabled:cursor-wait sm:h-5 sm:w-5"
         disabled={authLoading}
       >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full border border-background bg-hard px-1 text-[9px] font-black leading-none text-white" aria-label={`${unreadCount} notificări necitite`}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
+        <Bell className="h-6 w-6 sm:h-5 sm:w-5" />
+        {unreadCount > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-background bg-hard px-1 text-[9px] font-black leading-none text-white sm:-right-2 sm:-top-2" aria-label={`${unreadCount} notificări necitite`}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
 
       {open && (
