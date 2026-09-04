@@ -14,7 +14,7 @@ function hasRecoveryMarker() {
 
 export default function ResetPassword() {
   const navigate = useNavigate();
-  const { authEvent } = useAuth();
+  const { isPasswordRecovery } = useAuth();
   const [recoveryStatus, setRecoveryStatus] = useState('checking');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -29,7 +29,7 @@ export default function ResetPassword() {
 
     const validateRecoverySession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (mounted) setRecoveryStatus(session && (hasRecoveryMarker() || authEvent === 'PASSWORD_RECOVERY') ? 'valid' : 'invalid');
+      if (mounted) setRecoveryStatus(session && (hasRecoveryMarker() || isPasswordRecovery) ? 'valid' : 'invalid');
     };
 
     validateRecoverySession();
@@ -43,7 +43,7 @@ export default function ResetPassword() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [authEvent, recoveryStatus]);
+  }, [isPasswordRecovery, recoveryStatus]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -61,14 +61,6 @@ export default function ResetPassword() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setRecoveryStatus('invalid');
-        return;
-      }
-
-      // A recovery redirect may leave an almost-expired access token in storage.
-      // Refresh it before updateUser so the request always uses the current session.
-      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError || !refreshedData.session) {
         setRecoveryStatus('invalid');
         return;
       }

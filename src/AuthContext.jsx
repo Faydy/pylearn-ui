@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authEvent, setAuthEvent] = useState(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -59,7 +59,8 @@ export const AuthProvider = ({ children }) => {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (isMounted) setAuthEvent(event);
+      if (isMounted && event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true);
+      if (isMounted && event === 'SIGNED_OUT') setIsPasswordRecovery(false);
       syncAuthState(session);
     });
 
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, authEvent, refreshAuth }}>
+    <AuthContext.Provider value={{ user, profile, loading, isPasswordRecovery, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

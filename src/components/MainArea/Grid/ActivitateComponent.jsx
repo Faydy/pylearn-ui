@@ -6,6 +6,7 @@ import { supabase } from '../../../supabaseClient';
 
 export default function ActivitateComponent() {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id;
   const [activityData, setActivityData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -13,7 +14,7 @@ export default function ActivitateComponent() {
     let isCurrent = true;
 
     const fetchActivity = async () => {
-      if (!user) {
+      if (!userId) {
         setActivityData(null);
         setIsLoading(false);
         return;
@@ -22,14 +23,10 @@ export default function ActivitateComponent() {
       setIsLoading(true);
 
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('total_xp, current_streak')
-          .eq('id', user.id)
-          .single();
+        const { data, error } = await supabase.rpc('get_own_activity_summary');
 
         if (error) throw error;
-        if (isCurrent) setActivityData(data);
+        if (isCurrent) setActivityData(data?.[0] || null);
       } catch (error) {
         console.error('Eroare la încărcarea activității:', error.message);
         if (isCurrent) setActivityData(null);
@@ -43,7 +40,7 @@ export default function ActivitateComponent() {
     return () => {
       isCurrent = false;
     };
-  }, [user]);
+  }, [userId]);
 
   if (authLoading || (user && isLoading)) {
     return (

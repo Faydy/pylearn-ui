@@ -1,99 +1,101 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Calendar as CalendarIcon, Check, Loader2 } from 'lucide-react';
+import { useAuth } from '../../AuthContext';
 import { supabase } from '../../supabaseClient';
-import { Calendar as CalendarIcon, Loader2, Check } from 'lucide-react';
+import { addLocalDays, getLocalDateKey, getStartOfLocalWeek } from '../../utils/activity';
 
 export default function CalendarActivitate() {
+  const { user, loading: authLoading } = useAuth();
   const [activityMap, setActivityMap] = useState({});
   const [loading, setLoading] = useState(true);
-
-  // 1. Calculăm Lunea din săptămâna curentă
-  const today = new Date();
-  const currentDayIndex = (today.getDay() + 6) % 7; // 0 = Luni, 1 = Marți, ..., 6 = Duminică
-  
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - currentDayIndex);
+  const [now, setNow] = useState(() => new Date());
+  const startOfWeek = getStartOfLocalWeek(now);
+  const startOfWeekKey = getLocalDateKey(startOfWeek);
+  const todayKey = getLocalDateKey(now);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
     const fetchActivityHistory = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
+      if (authLoading) return;
+
+      if (!user?.id) {
+        if (isCurrent) {
+          setActivityMap({});
           setLoading(false);
-          return;
         }
+        return;
+      }
 
-        const userId = session.user.id;
+      setLoading(true);
 
-        // Formatăm data de Luni pentru Supabase (YYYY-MM-DD)
-        const pad = (n) => n.toString().padStart(2, '0');
-        const startDateStr = `${startOfWeek.getFullYear()}-${pad(startOfWeek.getMonth() + 1)}-${pad(startOfWeek.getDate())}`;
-
+      try {
+        const weekStart = new Date(`${startOfWeekKey}T00:00:00`);
+        const weekEnd = addLocalDays(weekStart, 7);
         const { data, error } = await supabase
-          .from('activity_log')
-          .select('activity_date, problems_solved_count')
-          .eq('user_id', userId)
-          .gte('activity_date', startDateStr);
+          .from('submissions')
+          .select('submitted_at')
+          .eq('user_id', user.id)
+          .eq('status', 'accepted')
+          .gte('submitted_at', weekStart.toISOString())
+          .lt('submitted_at', weekEnd.toISOString());
 
         if (error) throw error;
+        if (!isCurrent) return;
 
-        const map = {};
-        if (data) {
-          data.forEach(item => {
-            if (item.problems_solved_count > 0) {
-              map[item.activity_date] = true;
-            }
-          });
-        }
-        
-        setActivityMap(map);
+        const nextActivityMap = {};
+        (data || []).forEach((submission) => {
+          const activityDate = getLocalDateKey(submission.submitted_at);
+          if (activityDate) nextActivityMap[activityDate] = true;
+        });
 
+        setActivityMap(nextActivityMap);
       } catch (error) {
-        console.error("Eroare la extragerea activității:", error.message);
+        console.error('Eroare la extragerea activității:', error.message);
+        if (isCurrent) setActivityMap({});
       } finally {
-        setLoading(false);
+        if (isCurrent) setLoading(false);
       }
     };
 
     fetchActivityHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      isCurrent = false;
+    };
+  }, [authLoading, startOfWeekKey, user?.id]);
 
   const zileSaptamana = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum'];
 
-  // 2. Generăm strict cele 7 zile ale săptămânii curente
   const activityData = Array.from({ length: 7 }, (_, index) => {
-    const dateObj = new Date(startOfWeek);
-    dateObj.setDate(dateObj.getDate() + index);
-    
-    const pad = (n) => n.toString().padStart(2, '0');
-    const dbDateStr = `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}`;
-    
-    const isToday = dateObj.toDateString() === today.toDateString();
-    // Resetăm orele la 00:00 pentru o comparație corectă strict pe zile
-    const isFuture = dateObj.setHours(0,0,0,0) > today.setHours(0,0,0,0); 
-    
-    const isActive = !!activityMap[dbDateStr];
-    
+    const dateObj = addLocalDays(startOfWeek, index);
+    const dateKey = getLocalDateKey(dateObj);
+    const isToday = dateKey === todayKey;
+    const isFuture = dateKey > todayKey;
+
     return {
       label: zileSaptamana[index],
       date: dateObj.toLocaleDateString('ro-RO'),
-      isActive: isActive,
-      isToday: isToday,
-      isFuture: isFuture
+      isActive: !isFuture && Boolean(activityMap[dateKey]),
+      isToday,
+      isFuture,
     };
   });
 
   return (
     <div className="relative rounded-2xl border border-border bg-ink p-5 sm:p-6">
       
-      {/* Overlay de încărcare */}
       {loading && (
         <div className="absolute inset-0 bg-ink/50 backdrop-blur-[1px] flex items-center justify-center rounded-2xl z-10">
             <Loader2 className="w-6 h-6 animate-spin text-accent" />
         </div>
       )}
 
-      {/* Header */}
       <div className="flex justify-between items-end mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -104,20 +106,15 @@ export default function CalendarActivitate() {
         </div>
       </div>
 
-      {/* Containerul pentru săptămână */}
-      {/* Containerul pentru săptămână */}
       <div className="grid grid-cols-7 gap-2 py-4 w-full">
         {activityData.map((day, index) => (
           <div key={index} className="flex flex-col items-center gap-2.5">
-            
-            {/* Numele Zilei (ex: LUN, MAR) */}
             <span className={`text-[10px] font-bold uppercase tracking-wider ${
               day.isToday ? 'text-accent' : (day.isFuture ? 'text-muted/40' : 'text-muted')
             }`}>
               {day.label}
             </span>
 
-            {/* Pătrățelul de Activitate */}
             <div 
               title={day.isFuture ? '' : (day.isToday ? 'Azi' : (day.isActive ? `Ai rezolvat probleme pe ${day.date}` : `Nicio activitate pe ${day.date}`))}
               className={`
