@@ -2,6 +2,7 @@ import { AlertTriangle, ArrowRight, Loader2, LogOut, Mail, Save, User, Users } f
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import ProfileActivityCalendar from '../components/profile/ProfileActivityCalendar';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
@@ -304,9 +305,14 @@ export default function Profile() {
               <div className="flex justify-end"><button type="submit" disabled={saving || (normalizedPreview === profileData?.username && avatar === (profileData?.avatar || userAuth?.user_metadata?.avatar || '') && role === normalizeProfileRole(profileData?.role || userAuth?.user_metadata?.role || ''))} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvează modificările</button></div>
             </form>
           </section>
-          <section className="h-fit rounded-2xl border border-border bg-ink p-5 sm:p-6"><h2 className="text-lg font-bold text-text-main">Contul meu</h2><p className="mt-2 text-sm text-muted">Deloghează-te în siguranță de pe acest dispozitiv.</p><button type="button" onClick={handleLogout} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-hard/40 py-2.5 font-bold text-hard transition-colors hover:bg-hard/10"><LogOut className="h-4 w-4" />Ieși din cont</button></section>
+          <div className="space-y-6">
+            <ProfileActivityCalendar userId={viewedUserId} />
+            <section className="rounded-2xl border border-border bg-ink p-5 sm:p-6"><h2 className="text-lg font-bold text-text-main">Contul meu</h2><p className="mt-2 text-sm text-muted">Deloghează-te în siguranță de pe acest dispozitiv.</p><button type="button" onClick={handleLogout} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-hard/40 py-2.5 font-bold text-hard transition-colors hover:bg-hard/10"><LogOut className="h-4 w-4" />Ieși din cont</button></section>
+          </div>
         </div>
       )}
+
+      {!ownProfile && <div className="mt-6"><ProfileActivityCalendar userId={viewedUserId} /></div>}
     </div>
   );
 }

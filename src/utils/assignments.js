@@ -20,20 +20,25 @@ export function getAssignmentProgress(problemIds, statuses = []) {
   };
 }
 
-export function getAssignmentStatus({ solvedCount, total, dueAt }) {
-  if (total > 0 && solvedCount === total) {
-    return { label: 'Finalizat', tone: 'easy' };
+export function getAssignmentLifecycle({ solvedCount = 0, total = 0, dueAt, now = Date.now() }) {
+  if (total > 0 && solvedCount >= total) {
+    return { state: 'completed', label: 'Finalizată', tone: 'easy' };
   }
 
-  if (dueAt && new Date(dueAt).getTime() < Date.now()) {
-    return { label: 'Întârziată', tone: 'hard' };
+  const dueAtTimestamp = dueAt ? new Date(dueAt).getTime() : Number.NaN;
+  if (!Number.isNaN(dueAtTimestamp) && now > dueAtTimestamp) {
+    return { state: 'expired', label: 'Expirată', tone: 'hard' };
   }
 
   if (solvedCount > 0) {
-    return { label: 'În progres', tone: 'medium' };
+    return { state: 'active', label: 'În lucru', tone: 'medium' };
   }
 
-  return { label: 'Nefăcut', tone: 'muted' };
+  return { state: 'active', label: 'Neîncepută', tone: 'muted' };
+}
+
+export function getAssignmentStatus({ solvedCount, total, dueAt, now }) {
+  return getAssignmentLifecycle({ solvedCount, total, dueAt, now });
 }
 
 export function formatDueAt(dueAt, includeTime = true) {

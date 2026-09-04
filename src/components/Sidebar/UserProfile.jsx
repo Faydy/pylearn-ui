@@ -14,15 +14,15 @@ export default function UserProfile() {
   const role = PROFILE_ROLES.find((item) => item.value === normalizeProfileRole(profile?.role || user.user_metadata?.role));
 
   return (
-    <Link to="/profil" className="flex mt-2 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-[#2c2c2c]">
+    <Link to="/profil" className="mt-2 flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-sidebar-hover">
       <img 
         src={getAvatarUrl(avatarSeed)}
         alt="Avatar" 
-        className="w-10 h-10 rounded-full bg-gray-800"
+        className="h-10 w-10 rounded-full bg-sidebar"
       />
       <div className="flex flex-col">
-        <span className="text-sm font-semibold black:text-text-main">{displayName}</span>
-        <span className="text-xs text-gray-400">{role?.label || user.email}</span>
+        <span className="text-sm font-semibold text-text-main">{displayName}</span>
+        <span className="text-xs text-muted">{role?.label || user.email}</span>
       </div>
     </Link>
   );

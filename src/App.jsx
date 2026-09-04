@@ -91,6 +91,7 @@ export default function App() {
             <Route path="/anunturi" element={<Anunturi />} />
             <Route path="/notificari" element={user ? <Notificari /> : <Navigate to="/login" replace />} />
             <Route path="/teme" element={<Teme />} />
+            <Route path="/teme/toate" element={<Teme showAll />} />
             <Route path="/teme/noua" element={<EditorTema />} />
             <Route path="/teme/:assignmentId/edit" element={<EditorTema />} />
             <Route path="/teme/:assignmentId/elev/:studentId/problema/:problemId" element={<SolutieTemaElev />} />

@@ -8,9 +8,9 @@ const statusClasses = {
   muted: 'border-border bg-background text-muted',
 };
 
-export default function AssignmentProgress({ solvedCount, total, dueAt, compact = false }) {
+export default function AssignmentProgress({ solvedCount, total, dueAt, now, compact = false }) {
   const percentage = total === 0 ? 0 : Math.round((solvedCount / total) * 100);
-  const status = getAssignmentStatus({ solvedCount, total, dueAt });
+  const status = getAssignmentStatus({ solvedCount, total, dueAt, now });
 
   return (
     <div className={compact ? 'space-y-3' : 'space-y-4'}>
