@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authEvent, setAuthEvent] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -57,7 +58,8 @@ export const AuthProvider = ({ children }) => {
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isMounted) setAuthEvent(event);
       syncAuthState(session);
     });
 
@@ -84,7 +86,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, refreshAuth }}>
+    <AuthContext.Provider value={{ user, profile, loading, authEvent, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

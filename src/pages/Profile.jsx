@@ -4,12 +4,12 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
-import SolvedProblems from '../components/profile/SolvedProblems';
+import SubmittedSolutions from '../components/profile/SubmittedSolutions';
 import { supabase } from '../supabaseClient';
 import { AVATAR_OPTIONS, getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../utils/profile';
 import { normalizeUsername } from '../utils/username';
 
-const SOLVED_PROBLEMS_PAGE_SIZE = 12;
+const SUBMISSIONS_PAGE_SIZE = 8;
 
 export default function Profile() {
   const { user, refreshAuth } = useAuth();
@@ -26,44 +26,48 @@ export default function Profile() {
   const [role, setRole] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [profileError, setProfileError] = useState('');
-  const [solvedProblems, setSolvedProblems] = useState([]);
   const [solvedCount, setSolvedCount] = useState(0);
-  const [solvedLoading, setSolvedLoading] = useState(true);
-  const [solvedError, setSolvedError] = useState('');
-  const [hasMoreSolved, setHasMoreSolved] = useState(false);
+  const [submissions, setSubmissions] = useState([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState('');
+  const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false);
   const normalizedPreview = normalizeUsername(username);
 
-  const loadSolvedProblems = useCallback(async ({ offset = 0, append = false } = {}) => {
+  const loadSolvedCount = useCallback(async () => {
     if (!viewedUserId) return;
 
-    setSolvedLoading(true);
-    setSolvedError('');
-    const [problemsResponse, countResponse] = await Promise.all([
-      supabase.rpc('get_public_solved_problems', {
-        p_profile_id: viewedUserId,
-        p_offset: offset,
-        p_limit: SOLVED_PROBLEMS_PAGE_SIZE,
-      }),
-      supabase.rpc('get_public_solved_problem_count', { p_profile_id: viewedUserId }),
-    ]);
+    const { data, error } = await supabase
+      .rpc('get_public_solved_problem_count', { p_profile_id: viewedUserId });
 
-    if (problemsResponse.error || countResponse.error) {
-      setSolvedError('Problemele rezolvate nu au putut fi încărcate.');
-      setSolvedLoading(false);
+    if (!error) setSolvedCount(Number(data) || 0);
+  }, [viewedUserId]);
+
+  const loadOwnSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
+    if (!ownProfile || !user) return;
+
+    setSubmissionsLoading(true);
+    setSubmissionsError('');
+    const { data, error } = await supabase.rpc('get_own_recent_submissions', {
+      p_offset: offset,
+      p_limit: SUBMISSIONS_PAGE_SIZE + 1,
+    });
+
+    if (error) {
+      setSubmissionsError('Soluțiile trimise nu au putut fi încărcate.');
+      setSubmissionsLoading(false);
       return;
     }
 
-    const nextProblems = problemsResponse.data || [];
-    const nextCount = Number(countResponse.data) || 0;
-    setSolvedCount(nextCount);
-    setSolvedProblems((current) => {
-      if (!append) return nextProblems;
-      const knownProblemDates = new Set(current.map((problem) => `${problem.problem_id}:${problem.solved_at || ''}`));
-      return [...current, ...nextProblems.filter((problem) => !knownProblemDates.has(`${problem.problem_id}:${problem.solved_at || ''}`))];
+    const receivedSubmissions = data || [];
+    const nextSubmissions = receivedSubmissions.slice(0, SUBMISSIONS_PAGE_SIZE);
+    setSubmissions((current) => {
+      if (!append) return nextSubmissions;
+      const knownIds = new Set(current.map((submission) => submission.submission_id));
+      return [...current, ...nextSubmissions.filter((submission) => !knownIds.has(submission.submission_id))];
     });
-    setHasMoreSolved(offset + nextProblems.length < nextCount);
-    setSolvedLoading(false);
-  }, [viewedUserId]);
+    setHasMoreSubmissions(receivedSubmissions.length > SUBMISSIONS_PAGE_SIZE);
+    setSubmissionsLoading(false);
+  }, [ownProfile, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,9 +81,10 @@ export default function Profile() {
       setLoading(true);
       setProfileError('');
       setPublicProfile(null);
-      setSolvedProblems([]);
       setSolvedCount(0);
-      setHasMoreSolved(false);
+      setSubmissions([]);
+      setSubmissionsError('');
+      setHasMoreSubmissions(false);
 
       try {
         if (ownProfile) {
@@ -137,9 +142,25 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user || !viewedUserId) return undefined;
-    loadSolvedProblems();
+    loadSolvedCount();
     return undefined;
-  }, [loadSolvedProblems, user, viewedUserId]);
+  }, [loadSolvedCount, user, viewedUserId]);
+
+  useEffect(() => {
+    if (!ownProfile || !user) return undefined;
+    loadOwnSubmissions();
+    return undefined;
+  }, [loadOwnSubmissions, ownProfile, user]);
+
+  const loadSubmissionSolution = async (submissionId) => {
+    const { data, error } = await supabase.rpc('get_own_submission', {
+      p_submission_id: submissionId,
+    });
+
+    if (error) throw error;
+    if (!data?.[0]) throw new Error('Soluția nu a fost găsită.');
+    return data[0];
+  };
 
   const handleUpdate = async (event) => {
     event.preventDefault();
@@ -193,7 +214,8 @@ export default function Profile() {
     <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
       <ProfileHeader profile={publicProfile} ownProfile={ownProfile} />
       <div className="mt-6"><ProfileStats profile={publicProfile} solvedCount={solvedCount} /></div>
-      <div className="mt-6"><SolvedProblems problems={solvedProblems} loading={solvedLoading} error={solvedError} ownProfile={ownProfile} hasMore={hasMoreSolved} onLoadMore={() => loadSolvedProblems({ offset: solvedProblems.length, append: true })} /></div>
+
+      {ownProfile && <div className="mt-6"><SubmittedSolutions submissions={submissions} loading={submissionsLoading} error={submissionsError} hasMore={hasMoreSubmissions} onLoadMore={() => loadOwnSubmissions({ offset: submissions.length, append: true })} onLoadSolution={loadSubmissionSolution} /></div>}
 
       {ownProfile && (
         <div className="mt-6 grid gap-6 lg:grid-cols-3">

@@ -20,20 +20,16 @@ export function getAssignmentProgress(problemIds, statuses = []) {
   };
 }
 
-export function getAssignmentStatus({ solvedCount, total, dueAt }) {
+export function getAssignmentStatus({ solvedCount, total }) {
   if (total > 0 && solvedCount === total) {
-    return { label: 'Finalizată', tone: 'easy' };
-  }
-
-  if (dueAt && new Date(dueAt).getTime() < Date.now()) {
-    return { label: 'Întârziată', tone: 'hard' };
+    return { label: 'Finalizat', tone: 'easy' };
   }
 
   if (solvedCount > 0) {
-    return { label: 'În lucru', tone: 'medium' };
+    return { label: 'În progres', tone: 'medium' };
   }
 
-  return { label: 'Neîncepută', tone: 'muted' };
+  return { label: 'Nefăcut', tone: 'muted' };
 }
 
 export function formatDueAt(dueAt, includeTime = true) {

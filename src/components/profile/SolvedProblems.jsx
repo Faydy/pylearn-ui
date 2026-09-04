@@ -1,9 +1,0 @@
-import { CheckCircle2, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import SolvedProblemCard from './SolvedProblemCard';
-
-export default function SolvedProblems({ problems, loading, error, ownProfile, hasMore, onLoadMore }) {
-  const emptyTitle = ownProfile ? 'Nu ai rezolvat încă nicio problemă.' : 'Acest utilizator nu a rezolvat încă nicio problemă.';
-
-  return <section className="overflow-hidden rounded-2xl border border-border bg-ink"><div className="flex flex-col justify-between gap-3 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:px-6"><div><h2 className="text-xl font-bold text-text-main">Probleme rezolvate</h2><p className="mt-1 text-sm text-muted">Problemele finalizate cu succes pe PyLearn.</p></div></div>{loading && problems.length === 0 ? <div className="flex justify-center p-12"><Loader2 className="h-7 w-7 animate-spin text-accent" /></div> : error ? <p className="p-5 text-sm text-hard">{error}</p> : problems.length === 0 ? <div className="p-8 text-center sm:p-12"><CheckCircle2 className="mx-auto h-9 w-9 text-muted" /><h3 className="mt-4 text-xl font-bold text-text-main">{emptyTitle}</h3>{ownProfile && <Link to="/probleme" className="mt-5 inline-flex rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-accent/90">Rezolvă prima problemă</Link>}</div> : <><div className="divide-y divide-border">{problems.map((problem) => <SolvedProblemCard key={`${problem.problem_id}-${problem.solved_at || ''}`} problem={problem} />)}</div>{hasMore && <div className="border-t border-border p-4 text-center"><button type="button" onClick={onLoadMore} disabled={loading} className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-bold text-text-main transition-colors hover:bg-sidebar-hover disabled:opacity-50">{loading && <Loader2 className="h-4 w-4 animate-spin" />}Încarcă mai multe</button></div>}</>}</section>;
-}

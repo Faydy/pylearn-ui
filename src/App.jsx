@@ -18,6 +18,8 @@ import ToateProblemele from './pages/ToateProblemele';
 import ProblemeSectiune from './pages/ProblemeSectiune';
 import Teme from './pages/Teme';
 import TemaDetalii from './pages/TemaDetalii';
+import TemaElevDetalii from './pages/TemaElevDetalii';
+import SolutieTemaElev from './pages/SolutieTemaElev';
 import EditorTema from './pages/EditorTema';
 import Clase from './pages/Clase';
 import DetaliiClasa from './pages/DetaliiClasa';
@@ -26,6 +28,9 @@ import Notificari from './pages/Notificari';
 
 import Auth from './Auth';
 import CreareProfil from './CreareProfil';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import { isProfileComplete } from './utils/profile';
 
 export default function App() {
@@ -46,7 +51,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         
-        <Route path="/login" element={user ? <Navigate to={authenticatedDestination} replace /> : <Auth />} />
+        <Route path="/login" element={user ? <Navigate to={authenticatedDestination} replace /> : <Auth initialMode="login" />} />
+        <Route path="/register" element={user ? <Navigate to={authenticatedDestination} replace /> : <Auth initialMode="register" />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="/creare-profil"
           element={user ? (profileComplete ? <Navigate to="/" replace /> : <CreareProfil />) : <Navigate to="/login" replace />}
@@ -73,6 +82,8 @@ export default function App() {
           <Route path="/teme" element={<Teme />} />
           <Route path="/teme/noua" element={<EditorTema />} />
           <Route path="/teme/:assignmentId/edit" element={<EditorTema />} />
+          <Route path="/teme/:assignmentId/elev/:studentId/problema/:problemId" element={<SolutieTemaElev />} />
+          <Route path="/teme/:assignmentId/elev/:studentId" element={<TemaElevDetalii />} />
           <Route path="/teme/:assignmentId" element={<TemaDetalii />} />
           <Route path="/clase" element={<Clase />} />
           <Route path="/clase/:classId" element={<DetaliiClasa />} />

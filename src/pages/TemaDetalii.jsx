@@ -1,12 +1,24 @@
 import { AlertTriangle, ArrowLeft, ClipboardList, Loader2, Pencil, Trash2, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AssignmentProblemList from '../components/assignments/AssignmentProblemList';
 import AssignmentProgress from '../components/assignments/AssignmentProgress';
+import StudentAssignmentProgressCard from '../components/assignments/StudentAssignmentProgressCard';
 import TopHeader from '../components/MainArea/TopHeader';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../supabaseClient';
-import { getAssignmentProgress, getAssignmentStatus, isTeacher } from '../utils/assignments';
+import { getAssignmentProgress, isTeacher } from '../utils/assignments';
+
+function getTeacherSummary(students) {
+  const completed = students.filter((student) => student.total > 0 && student.solvedCount === student.total).length;
+  const inProgress = students.filter((student) => student.solvedCount > 0 && student.solvedCount < student.total).length;
+  const notStarted = students.length - completed - inProgress;
+  const average = students.length === 0
+    ? 0
+    : Math.round(students.reduce((sum, student) => sum + student.percentage, 0) / students.length);
+
+  return { completed, inProgress, notStarted, average };
+}
 
 export default function TemaDetalii() {
   const { assignmentId } = useParams();
@@ -16,10 +28,30 @@ export default function TemaDetalii() {
   const [problems, setProblems] = useState([]);
   const [progress, setProgress] = useState({ solvedCount: 0, total: 0, percentage: 0, solvedIds: new Set() });
   const [studentProgress, setStudentProgress] = useState([]);
+  const [studentProgressError, setStudentProgressError] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const teacherView = isTeacher(profile, user);
+
+  const loadStudentProgress = useCallback(async () => {
+    if (!teacherView || !assignmentId) return;
+
+    const { data, error: progressError } = await supabase.rpc('get_assignment_student_progress', {
+      p_assignment_id: Number(assignmentId),
+    });
+    if (progressError) throw progressError;
+
+    setStudentProgress((data || []).map((student) => ({
+      id: student.student_id,
+      username: student.username || 'Elev PyLearn',
+      avatar: student.avatar,
+      solvedCount: Number(student.solved_count) || 0,
+      total: Number(student.total_count) || 0,
+      percentage: Number(student.progress_percentage) || 0,
+    })));
+    setStudentProgressError('');
+  }, [assignmentId, teacherView]);
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -109,43 +141,11 @@ export default function TemaDetalii() {
         setProgress(getAssignmentProgress(problemIds, statusRows || []));
 
         if (teacherView) {
-          const { data: memberRows, error: membersError } = await supabase
-            .from('classroom_members')
-            .select('student_id')
-            .eq('classroom_id', assignmentRow.classroom_id);
-          if (membersError) throw membersError;
-
-          const studentIds = (memberRows || []).map((member) => member.student_id);
-          if (studentIds.length === 0) {
-            setStudentProgress([]);
-          } else {
-            const [profilesResponse, statusesResponse] = await Promise.all([
-              supabase.from('profiles').select('id, username').in('id', studentIds),
-              problemIds.length === 0
-                ? Promise.resolve({ data: [], error: null })
-                : supabase.from('user_problem_status').select('user_id, problem_id, solved').in('user_id', studentIds).in('problem_id', problemIds),
-            ]);
-
-            if (profilesResponse.error) throw profilesResponse.error;
-            if (statusesResponse.error) throw statusesResponse.error;
-
-            const profileNames = new Map((profilesResponse.data || []).map((student) => [student.id, student.username]));
-            const statusesByStudent = new Map();
-            (statusesResponse.data || []).forEach((status) => {
-              const currentStatuses = statusesByStudent.get(status.user_id) || [];
-              currentStatuses.push(status);
-              statusesByStudent.set(status.user_id, currentStatuses);
-            });
-
-            setStudentProgress(studentIds.map((studentId) => {
-              const studentAssignmentProgress = getAssignmentProgress(problemIds, statusesByStudent.get(studentId) || []);
-              return {
-                id: studentId,
-                username: profileNames.get(studentId) || 'Elev fără username',
-                ...studentAssignmentProgress,
-                status: getAssignmentStatus({ ...studentAssignmentProgress, dueAt: assignmentRow.due_at }),
-              };
-            }).sort((first, second) => first.username.localeCompare(second.username, 'ro')));
+          try {
+            await loadStudentProgress();
+          } catch (progressError) {
+            console.error('Eroare la încărcarea progresului elevilor:', progressError.message);
+            setStudentProgressError('Progresul elevilor nu a putut fi încărcat.');
           }
         }
       } catch (fetchError) {
@@ -157,7 +157,37 @@ export default function TemaDetalii() {
     };
 
     fetchAssignment();
-  }, [assignmentId, teacherView, user]);
+  }, [assignmentId, loadStudentProgress, teacherView, user]);
+
+  useEffect(() => {
+    if (!teacherView || !user || problems.length === 0) return undefined;
+
+    let refreshTimer;
+    const channel = supabase.channel(`assignment-progress:${assignmentId}`);
+    problems.forEach(({ problem }) => {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_problem_status', filter: `problem_id=eq.${problem.id}` },
+        () => {
+          window.clearTimeout(refreshTimer);
+          refreshTimer = window.setTimeout(async () => {
+            try {
+              await loadStudentProgress();
+            } catch (progressError) {
+              console.error('Eroare la actualizarea progresului elevilor:', progressError.message);
+              setStudentProgressError('Progresul elevilor nu a putut fi actualizat.');
+            }
+          }, 250);
+        },
+      );
+    });
+    channel.subscribe();
+
+    return () => {
+      window.clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [assignmentId, loadStudentProgress, problems, teacherView, user]);
 
   const handleDelete = async () => {
     if (!assignment || !window.confirm(`Ștergi definitiv tema „${assignment.title}”?`)) return;
@@ -191,15 +221,19 @@ export default function TemaDetalii() {
     return <div className="flex h-full flex-col"><TopHeader title="Teme" /><div className="p-4 sm:p-6"><div className="mx-auto max-w-3xl rounded-2xl border border-hard/20 bg-hard/10 p-4 text-hard sm:p-6"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5" /><div><p className="font-bold">Tema nu a putut fi afișată.</p><p className="mt-1 text-sm">{error || 'Tema nu a fost găsită.'}</p></div></div><Link to="/teme" className="mt-4 inline-flex font-bold underline">Înapoi la teme</Link></div></div></div>;
   }
 
+  const teacherSummary = getTeacherSummary(studentProgress);
+
   return (
     <div className="flex h-full flex-col"><TopHeader title="Teme" /><main className="flex-1 overflow-y-auto p-4 sm:p-6"><div className="mx-auto w-full max-w-5xl pb-10"><Link to="/teme" className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />Înapoi la teme</Link>
       <section className="rounded-2xl border border-border bg-ink p-4 sm:p-6 md:p-8"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start"><div className="min-w-0"><div className="flex items-center gap-2 text-sm font-bold text-accent"><ClipboardList className="h-5 w-5" />{assignment.classroomName}</div><h1 className="mt-3 text-2xl font-bold text-text-main sm:text-3xl">{assignment.title}</h1>{assignment.description && <p className="mt-3 max-w-3xl whitespace-pre-wrap text-muted">{assignment.description}</p>}</div>{teacherView && <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><Link to={`/teme/${assignment.id}/edit`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-bold text-text-main transition-colors hover:border-accent hover:text-accent"><Pencil className="h-4 w-4" />Editează</Link><button type="button" onClick={handleDelete} disabled={deleting} className="inline-flex items-center justify-center gap-2 rounded-xl border border-hard/30 px-3 py-2 text-sm font-bold text-hard transition-colors hover:bg-hard/10 disabled:cursor-not-allowed disabled:opacity-50">{deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Șterge</button></div>}</div>
-        <div className="mt-8 border-t border-border pt-6"><AssignmentProgress solvedCount={progress.solvedCount} total={progress.total} dueAt={assignment.due_at} /></div>
+        <div className="mt-8 border-t border-border pt-6">
+          {teacherView ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><div className="rounded-xl border border-border bg-background p-3"><p className="text-xs font-bold uppercase tracking-wider text-muted">Elevi</p><p className="mt-2 text-2xl font-bold text-text-main">{studentProgress.length}</p></div><div className="rounded-xl border border-easy/20 bg-easy/10 p-3"><p className="text-xs font-bold uppercase tracking-wider text-easy">Finalizat</p><p className="mt-2 text-2xl font-bold text-text-main">{teacherSummary.completed}</p></div><div className="rounded-xl border border-medium/20 bg-medium/10 p-3"><p className="text-xs font-bold uppercase tracking-wider text-medium">În progres</p><p className="mt-2 text-2xl font-bold text-text-main">{teacherSummary.inProgress}</p></div><div className="rounded-xl border border-border bg-background p-3"><p className="text-xs font-bold uppercase tracking-wider text-muted">Nefăcut</p><p className="mt-2 text-2xl font-bold text-text-main">{teacherSummary.notStarted}</p></div><div className="rounded-xl border border-border bg-background p-3"><p className="text-xs font-bold uppercase tracking-wider text-muted">Medie</p><p className="mt-2 text-2xl font-bold text-text-main">{teacherSummary.average}%</p></div></div> : <AssignmentProgress solvedCount={progress.solvedCount} total={progress.total} dueAt={assignment.due_at} />}
+        </div>
       </section>
 
-      <section className="mt-6"><div className="mb-4 flex items-center justify-between"><div><h2 className="text-xl font-bold text-text-main">Problemele temei</h2><p className="mt-1 text-sm text-muted">Rezolvă-le în ordine sau alege problema cu care vrei să continui.</p></div><span className="rounded-md bg-accent/10 px-3 py-1 text-sm font-bold text-accent">{problems.length}</span></div><AssignmentProblemList problems={problems} solvedIds={progress.solvedIds} /></section>
+      <section className="mt-6"><div className="mb-4 flex items-center justify-between"><div><h2 className="text-xl font-bold text-text-main">Problemele temei</h2><p className="mt-1 text-sm text-muted">{teacherView ? 'Problemele incluse în tema publicată elevilor.' : 'Rezolvă-le în ordine sau alege problema cu care vrei să continui.'}</p></div><span className="rounded-md bg-accent/10 px-3 py-1 text-sm font-bold text-accent">{problems.length}</span></div><AssignmentProblemList problems={problems} solvedIds={progress.solvedIds} /></section>
 
-      {teacherView && <section className="mt-6 rounded-2xl border border-border bg-ink p-4 sm:p-6"><div className="mb-5 flex items-center gap-2"><Users className="h-5 w-5 text-accent" /><div><h2 className="text-xl font-bold text-text-main">Progres elevi</h2><p className="mt-1 text-sm text-muted">Progres calculat din problemele rezolvate, fără request-uri per elev.</p></div></div>{studentProgress.length === 0 ? <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted">Nu există elevi în această clasă momentan.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted"><tr><th className="px-3 py-3 font-bold">Elev</th><th className="px-3 py-3 font-bold">Progres</th><th className="px-3 py-3 font-bold">Status</th></tr></thead><tbody>{studentProgress.map((student) => <tr key={student.id} className="border-b border-border last:border-b-0"><td className="px-3 py-4 font-bold text-text-main"><Link to={`/profil/${student.id}`} className="transition-colors hover:text-accent">{student.username}</Link></td><td className="px-3 py-4 text-muted">{student.solvedCount} / {student.total} <span className="ml-1 text-xs">({student.percentage}%)</span></td><td className="px-3 py-4"><span className={`rounded-md px-2 py-1 text-xs font-bold ${student.status.tone === 'easy' ? 'bg-easy/10 text-easy' : student.status.tone === 'hard' ? 'bg-hard/10 text-hard' : student.status.tone === 'medium' ? 'bg-medium/10 text-medium' : 'bg-background text-muted'}`}>{student.status.label}</span></td></tr>)}</tbody></table></div>}</section>}
+      {teacherView && <section className="mt-6 rounded-2xl border border-border bg-ink p-4 sm:p-6"><div className="mb-5 flex items-center gap-2"><Users className="h-5 w-5 text-accent" /><div><h2 className="text-xl font-bold text-text-main">Progres elevi</h2><p className="mt-1 text-sm text-muted">Se actualizează automat când un elev rezolvă o problemă din temă.</p></div></div>{studentProgressError ? <p className="rounded-xl border border-hard/20 bg-hard/10 p-4 text-sm text-hard">{studentProgressError}</p> : studentProgress.length === 0 ? <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted">Nu există elevi înscriși în această clasă.</p> : <div className="grid gap-3 lg:grid-cols-2">{studentProgress.map((student) => <StudentAssignmentProgressCard key={student.id} assignmentId={assignment.id} student={student} />)}</div>}</section>}
     </div></main></div>
   );
 }

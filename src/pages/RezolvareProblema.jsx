@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Editor from '@monaco-editor/react';
@@ -8,6 +8,9 @@ import {
     RotateCcw, Terminal, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import TopHeader from "../components/MainArea/TopHeader";
+import SubmittedSolutions from '../components/profile/SubmittedSolutions';
+
+const PROBLEM_SUBMISSIONS_PAGE_SIZE = 20;
 
 export default function RezolvareProblema() {
     const { id } = useParams();
@@ -22,12 +25,61 @@ export default function RezolvareProblema() {
     const [hasError, setHasError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitResult, setSubmitResult] = useState(null);
+    const [problemSubmissions, setProblemSubmissions] = useState([]);
+    const [submissionsLoading, setSubmissionsLoading] = useState(false);
+    const [submissionsError, setSubmissionsError] = useState('');
+    const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false);
+    const [canViewSubmissions, setCanViewSubmissions] = useState(false);
+
+    const loadProblemSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
+        const problemId = Number(id);
+        if (!Number.isInteger(problemId)) return;
+
+        setSubmissionsLoading(true);
+        setSubmissionsError('');
+        const { data, error } = await supabase.rpc('get_own_problem_submissions', {
+            p_problem_id: problemId,
+            p_offset: offset,
+            p_limit: PROBLEM_SUBMISSIONS_PAGE_SIZE + 1,
+        });
+
+        if (error) {
+            setSubmissionsError('Trimiterile nu au putut fi încărcate.');
+            setSubmissionsLoading(false);
+            return;
+        }
+
+        const receivedSubmissions = data || [];
+        const nextSubmissions = receivedSubmissions.slice(0, PROBLEM_SUBMISSIONS_PAGE_SIZE);
+        setProblemSubmissions((current) => {
+            if (!append) return nextSubmissions;
+            const knownIds = new Set(current.map((submission) => submission.submission_id));
+            return [...current, ...nextSubmissions.filter((submission) => !knownIds.has(submission.submission_id))];
+        });
+        setHasMoreSubmissions(receivedSubmissions.length > PROBLEM_SUBMISSIONS_PAGE_SIZE);
+        setSubmissionsLoading(false);
+    }, [id]);
+
+    const loadSubmissionSolution = async (submissionId) => {
+        const { data, error } = await supabase.rpc('get_own_submission', {
+            p_submission_id: submissionId,
+        });
+
+        if (error) throw error;
+        if (!data?.[0]) throw new Error('Soluția nu a fost găsită.');
+        return data[0];
+    };
 
     useEffect(() => {
         const fetchProblemaSiStatus = async () => {
             try {
+                setIsSolved(false);
+                setProblemSubmissions([]);
+                setSubmissionsError('');
+                setHasMoreSubmissions(false);
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id;
+                setCanViewSubmissions(Boolean(userId));
 
                 const { data: problemData, error: problemError } = await supabase
                     .from('problems')
@@ -66,6 +118,8 @@ export default function RezolvareProblema() {
     if (!statusError && problemStatus?.solved) {
         setIsSolved(true);
     }
+
+    await loadProblemSubmissions();
 }
 
             } catch (error) {
@@ -76,7 +130,7 @@ export default function RezolvareProblema() {
         };
 
         fetchProblemaSiStatus();
-    }, [id]);
+    }, [id, loadProblemSubmissions]);
 
     // Salvare automată în localStorage, cu debounce
     useEffect(() => {
@@ -210,6 +264,21 @@ export default function RezolvareProblema() {
         }
 
         setSubmitResult(data);
+
+        // Render the current submission immediately, then refresh the complete
+        // persisted history for this problem.
+        setProblemSubmissions((current) => [{
+            submission_id: `local-${Date.now()}`,
+            problem_id: Number(id),
+            problem_title: problema?.title || '',
+            submission_status: data.status,
+            submitted_at: new Date().toISOString(),
+            source_code: code,
+            runtime_ms: data.runtimeMs ?? null,
+            memory_kb: data.memoryKb ?? null,
+        }, ...current]);
+        setCanViewSubmissions(true);
+        void loadProblemSubmissions();
 
         if (data.status === 'accepted') {
             setIsSolved(true);
@@ -499,6 +568,8 @@ export default function RezolvareProblema() {
 
                     </div>
                 </div>
+
+                {canViewSubmissions && <div className="mt-6"><SubmittedSolutions submissions={problemSubmissions} loading={submissionsLoading} error={submissionsError} hasMore={hasMoreSubmissions} onLoadMore={() => loadProblemSubmissions({ offset: problemSubmissions.length, append: true })} onLoadSolution={loadSubmissionSolution} title="Trimiterile tale pentru această problemă" description="Deschide orice trimitere pentru a vedea codul exact trimis." showProblemTitle={false} /></div>}
             </div>
         </div>
     );
