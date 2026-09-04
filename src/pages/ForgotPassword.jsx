@@ -1,14 +1,15 @@
 import { ArrowLeft, Loader2, Mail, Send } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import { supabase } from '../supabaseClient';
 import { getAuthErrorMessage } from '../utils/auth';
 
 export default function ForgotPassword() {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' });
+  const [message, setMessage] = useState(() => location.state?.message || { text: '', type: '' });
 
   const handleSubmit = async (event) => {
     event.preventDefault();

@@ -16,9 +16,12 @@ export default function AssignmentCard({ assignment, teacherView = false }) {
           {assignment.description && <p className="mt-2 line-clamp-2 text-sm text-muted">{assignment.description}</p>}
         </div>
         {teacherView && (
-          <span className={`shrink-0 rounded-md border px-2 py-1 text-xs font-bold ${assignment.published ? 'border-easy/20 bg-easy/10 text-easy' : 'border-border bg-background text-muted'}`}>
-            {assignment.published ? 'Publicată' : 'Draft'}
-          </span>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span className={`rounded-md border px-2 py-1 text-xs font-bold ${assignment.published ? 'border-easy/20 bg-easy/10 text-easy' : 'border-border bg-background text-muted'}`}>
+              {assignment.published ? 'Publicată' : 'Draft'}
+            </span>
+            {assignment.is_finalized && <span className="rounded-md border border-medium/20 bg-medium/10 px-2 py-1 text-xs font-bold text-medium">Finalizată</span>}
+          </div>
         )}
       </div>
 

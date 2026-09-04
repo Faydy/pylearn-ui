@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Code2 } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ClockAlert, Code2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAvatarUrl, getProfileAvatarSeed } from '../../utils/profile';
 import { getAssignmentStatus } from '../../utils/assignments';
@@ -34,6 +34,13 @@ export default function StudentAssignmentProgressCard({ assignmentId, student })
           {status.label}
         </span>
       </div>
+
+      {student.submittedAfterDeadline && (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-hard/20 bg-hard/10 px-2 py-1 text-xs font-bold text-hard">
+          <ClockAlert className="h-3.5 w-3.5" />
+          A trimis după deadline
+        </p>
+      )}
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink">
         <div className="h-full rounded-full bg-accent transition-all duration-300" style={{ width: `${student.percentage}%` }} />

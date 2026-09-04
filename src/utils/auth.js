@@ -21,6 +21,14 @@ export function isUnverifiedEmailError(error) {
   return message.includes('email not confirmed') || message.includes('email not verified');
 }
 
+export function isSamePasswordError(error) {
+  const code = String(error?.code || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  return code === 'same_password'
+    || message.includes('different from the old password')
+    || message.includes('same as the old password');
+}
+
 export function rememberPendingVerificationEmail(email) {
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail) window.sessionStorage.setItem(PENDING_VERIFICATION_EMAIL_KEY, normalizedEmail);

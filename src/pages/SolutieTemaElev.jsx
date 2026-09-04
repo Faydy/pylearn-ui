@@ -1,8 +1,9 @@
 import Editor from '@monaco-editor/react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Cpu, Loader2, MemoryStick } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Cpu, MemoryStick } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import TopHeader from '../components/MainArea/TopHeader';
+import PageLoading from '../components/PageLoading';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../supabaseClient';
 
@@ -51,7 +52,7 @@ export default function SolutieTemaElev() {
   }, [assignmentId, problemId, studentId, user]);
 
   if (authLoading || loading) {
-    return <div className="flex h-full flex-col"><TopHeader title="Soluție elev" /><div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div></div>;
+    return <PageLoading title="Soluție elev" />;
   }
 
   if (!user || error || !solution) {

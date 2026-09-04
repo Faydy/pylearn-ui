@@ -5,7 +5,7 @@ import Editor from '@monaco-editor/react';
 import {
     Loader2, Star, ChevronRight, Share2, Clock,
     FileText, SlidersHorizontal, Lightbulb, Play, Send,
-    RotateCcw, Terminal, AlertTriangle, CheckCircle2
+    RotateCcw, Terminal, AlertTriangle, CheckCircle2, LockKeyhole
 } from 'lucide-react';
 import TopHeader from "../components/MainArea/TopHeader";
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
@@ -46,6 +46,9 @@ export default function RezolvareProblema() {
     const [submissionsError, setSubmissionsError] = useState('');
     const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false);
     const [canViewSubmissions, setCanViewSubmissions] = useState(false);
+    const [finalizedAssignment, setFinalizedAssignment] = useState(null);
+    const [submissionLockError, setSubmissionLockError] = useState('');
+    const isSubmissionLocked = Boolean(finalizedAssignment || submissionLockError);
 
     const loadProblemSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
         const problemId = Number(id);
@@ -93,6 +96,8 @@ export default function RezolvareProblema() {
                 setProblemSubmissions([]);
                 setSubmissionsError('');
                 setHasMoreSubmissions(false);
+                setFinalizedAssignment(null);
+                setSubmissionLockError('');
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id;
                 setCanViewSubmissions(Boolean(userId));
@@ -121,19 +126,29 @@ export default function RezolvareProblema() {
                 setCode(draftSalvat || codDeStart);
 
                 if (userId) {
-    const { data: problemStatus, error: statusError } = await supabase
-        .from('user_problem_status')
-        .select('solved')
-        .eq('problem_id', id)
-        .eq('user_id', userId)
-        .maybeSingle();
+                    const { data: finalizedAssignments, error: finalizedAssignmentError } = await supabase
+                        .rpc('get_finalized_assignment_for_problem', { p_problem_id: Number(id) });
 
-    if (!statusError && problemStatus?.solved) {
-        setIsSolved(true);
-    }
+                    if (finalizedAssignmentError) {
+                        console.error('Eroare la verificarea finalizării temei:', finalizedAssignmentError.message);
+                        setSubmissionLockError('Nu am putut verifica dacă trimiterea este permisă pentru această problemă.');
+                    } else {
+                        setFinalizedAssignment(finalizedAssignments?.[0] || null);
+                    }
 
-    await loadProblemSubmissions();
-}
+                    const { data: problemStatus, error: statusError } = await supabase
+                        .from('user_problem_status')
+                        .select('solved')
+                        .eq('problem_id', id)
+                        .eq('user_id', userId)
+                        .maybeSingle();
+
+                    if (!statusError && problemStatus?.solved) {
+                        setIsSolved(true);
+                    }
+
+                    await loadProblemSubmissions();
+                }
 
             } catch (error) {
                 console.error("Eroare la aducerea datelor:", error.message);
@@ -228,6 +243,21 @@ export default function RezolvareProblema() {
 };
 
     const handleSubmit = async () => {
+    if (finalizedAssignment) {
+        setActiveTab('rezultate');
+        setSubmitResult({
+            status: 'error',
+            error: `Tema „${finalizedAssignment.assignment_title}” este finalizată. Nu mai poți trimite soluții pentru problemele ei.`,
+        });
+        return;
+    }
+
+    if (submissionLockError) {
+        setActiveTab('rezultate');
+        setSubmitResult({ status: 'error', error: submissionLockError });
+        return;
+    }
+
     setIsSubmitting(true);
     setActiveTab('rezultate');
     setSubmitResult(null);
@@ -387,6 +417,20 @@ export default function RezolvareProblema() {
                     </div>
                 </div>
 
+                {finalizedAssignment && (
+                    <div className="mb-6 flex items-start gap-3 rounded-2xl border border-medium/20 bg-medium/10 p-4 text-text-main">
+                        <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-medium" />
+                        <div><p className="font-bold">Tema „{finalizedAssignment.assignment_title}” este finalizată.</p><p className="mt-1 text-sm text-muted">Poți consulta enunțul și rula codul, dar nu mai poți trimite soluții pentru această problemă.</p></div>
+                    </div>
+                )}
+
+                {submissionLockError && !finalizedAssignment && (
+                    <div className="mb-6 flex items-start gap-3 rounded-2xl border border-hard/20 bg-hard/10 p-4 text-hard">
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                        <p className="text-sm font-bold">{submissionLockError}</p>
+                    </div>
+                )}
+
                 {/* === LAYOUT BANC DE LUCRU === */}
                 <div className="grid grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-2 xl:gap-6">
 
@@ -471,11 +515,12 @@ export default function RezolvareProblema() {
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || isSubmissionLocked}
+                                    title={finalizedAssignment ? 'Tema este finalizată' : undefined}
                                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-sm font-bold text-ink shadow-lg shadow-accent/20 transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                                 >
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                    {isSubmitting ? 'Se verifică...' : 'Trimite'}
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isSubmissionLocked ? <LockKeyhole className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                                    {isSubmitting ? 'Se verifică...' : isSubmissionLocked ? 'Finalizată' : 'Trimite'}
                                 </button>
                             </div>
                         </div>

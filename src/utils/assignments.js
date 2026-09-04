@@ -20,9 +20,13 @@ export function getAssignmentProgress(problemIds, statuses = []) {
   };
 }
 
-export function getAssignmentStatus({ solvedCount, total }) {
+export function getAssignmentStatus({ solvedCount, total, dueAt }) {
   if (total > 0 && solvedCount === total) {
     return { label: 'Finalizat', tone: 'easy' };
+  }
+
+  if (dueAt && new Date(dueAt).getTime() < Date.now()) {
+    return { label: 'Întârziată', tone: 'hard' };
   }
 
   if (solvedCount > 0) {
@@ -43,10 +47,23 @@ export function formatDueAt(dueAt, includeTime = true) {
   }).format(new Date(dueAt));
 }
 
+export function toDueAtISOString(localValue) {
+  if (!localValue) return null;
+
+  const date = new Date(localValue);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Deadline-ul nu conține o dată și o oră valide.');
+  }
+
+  return date.toISOString();
+}
+
 export function toDateTimeLocalValue(dueAt) {
   if (!dueAt) return '';
 
   const date = new Date(dueAt);
+  if (Number.isNaN(date.getTime())) return '';
+
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
   return date.toISOString().slice(0, 16);
 }

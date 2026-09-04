@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import AuthLayout from '../components/auth/AuthLayout';
 import { supabase } from '../supabaseClient';
-import { getAuthErrorMessage } from '../utils/auth';
+import { getAuthErrorMessage, isSamePasswordError } from '../utils/auth';
 
 function hasRecoveryMarker() {
   const query = new URLSearchParams(window.location.search);
@@ -66,7 +66,25 @@ export default function ResetPassword() {
       }
 
       const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      if (error) {
+        if (isSamePasswordError(error)) {
+          const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+          if (signOutError) throw signOutError;
+
+          navigate('/forgot-password', {
+            replace: true,
+            state: {
+              message: {
+                text: 'Parola nouă trebuie să fie diferită de parola anterioară. Solicită un nou email de resetare.',
+                type: 'error',
+              },
+            },
+          });
+          return;
+        }
+
+        throw error;
+      }
 
       // A recovery session must not remain signed in after the password changes.
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });

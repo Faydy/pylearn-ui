@@ -1,8 +1,9 @@
-import { AlertTriangle, ClipboardList, Loader2, LogIn, Plus } from 'lucide-react';
+import { AlertTriangle, ClipboardList, LogIn, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AssignmentCard from '../components/assignments/AssignmentCard';
 import TopHeader from '../components/MainArea/TopHeader';
+import PageLoading from '../components/PageLoading';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../supabaseClient';
 import { getAssignmentProgress, isTeacher } from '../utils/assignments';
@@ -51,7 +52,7 @@ export default function Teme() {
 
         let assignmentsQuery = supabase
           .from('assignments')
-          .select('id, classroom_id, created_by, title, description, due_at, published, created_at')
+          .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, created_at')
           .in('classroom_id', classroomIds)
           .order('created_at', { ascending: false });
 
@@ -116,7 +117,7 @@ export default function Teme() {
   }, [teacherView, user]);
 
   if (authLoading || (user && loading)) {
-    return <div className="flex h-full flex-col"><TopHeader title="Teme" /><div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div></div>;
+    return <PageLoading title="Teme" />;
   }
 
   if (!user) {

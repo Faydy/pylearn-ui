@@ -1,7 +1,8 @@
-import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Code2, Eye, Loader2, Star, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Code2, Eye, Star, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import TopHeader from '../components/MainArea/TopHeader';
+import PageLoading from '../components/PageLoading';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../supabaseClient';
 import { getDifficultyClasses } from '../utils/assignments';
@@ -42,7 +43,7 @@ export default function TemaElevDetalii() {
   }, [assignmentId, studentId, user]);
 
   if (authLoading || loading) {
-    return <div className="flex h-full flex-col"><TopHeader title="Teme" /><div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div></div>;
+    return <PageLoading title="Teme" />;
   }
 
   if (!user) {

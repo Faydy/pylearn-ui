@@ -8,6 +8,7 @@ import ClassCode from '../components/classes/ClassCode';
 import ClassMembers from '../components/classes/ClassMembers';
 import ClassSettings from '../components/classes/ClassSettings';
 import TopHeader from '../components/MainArea/TopHeader';
+import PageLoading from '../components/PageLoading';
 import { supabase } from '../supabaseClient';
 import { getSupabaseMessage } from '../utils/classrooms';
 
@@ -75,7 +76,7 @@ export default function DetaliiClasa() {
         const teacherOwnsClass = details.teacher_id === user.id;
         let assignmentsQuery = supabase
           .from('assignments')
-          .select('id, title, description, due_at, published, created_at')
+          .select('id, title, description, due_at, published, is_finalized, created_at')
           .eq('classroom_id', classroomId)
           .order('created_at', { ascending: false });
         if (!teacherOwnsClass) assignmentsQuery = assignmentsQuery.eq('published', true);
@@ -195,7 +196,7 @@ export default function DetaliiClasa() {
   };
 
   if (authLoading || (user && loading)) {
-    return <div className="flex h-full flex-col"><TopHeader title="Clase" /><div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div></div>;
+    return <PageLoading title="Clase" />;
   }
 
   if (!user) {

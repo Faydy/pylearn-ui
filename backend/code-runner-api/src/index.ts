@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // ======================================================
 // ENV
@@ -27,6 +27,12 @@ const ALLOWED_ORIGINS = new Set([
 	"http://127.0.0.1:5173",
 ]);
 
+type FinalizedAssignment = {
+	id: number;
+	title: string;
+	classroom_id: number;
+};
+
 class HttpError extends Error {
 	status: number;
 
@@ -37,6 +43,126 @@ class HttpError extends Error {
 		super(message);
 		this.status = status;
 	}
+}
+
+async function findFinalizedAssignmentForStudent(
+	supabase: SupabaseClient,
+	userId: string,
+	problemId: number
+): Promise<FinalizedAssignment | null> {
+	const {
+		data: profile,
+		error: profileError,
+	} = await supabase
+		.from("profiles")
+		.select("role")
+		.eq("id", userId)
+		.maybeSingle();
+
+	if (profileError) {
+		throw new HttpError(
+			500,
+			"Nu am putut verifica profilul utilizatorului."
+		);
+	}
+
+	const role =
+		typeof profile?.role === "string"
+			? profile.role.toLowerCase()
+			: "";
+
+	if (
+		role !== "elev" &&
+		role !== "student"
+	) {
+		return null;
+	}
+
+	const {
+		data: assignmentLinks,
+		error: assignmentLinksError,
+	} = await supabase
+		.from("assignment_problems")
+		.select("assignment_id")
+		.eq("problem_id", problemId);
+
+	if (assignmentLinksError) {
+		throw new HttpError(
+			500,
+			"Nu am putut verifica temele acestei probleme."
+		);
+	}
+
+	const assignmentIds =
+		(assignmentLinks || [])
+			.map((link) => Number(link.assignment_id))
+			.filter((assignmentId) =>
+				Number.isInteger(assignmentId)
+			);
+
+	if (assignmentIds.length === 0) {
+		return null;
+	}
+
+	const {
+		data: finalizedAssignments,
+		error: finalizedAssignmentsError,
+	} = await supabase
+		.from("assignments")
+		.select("id, title, classroom_id")
+		.in("id", assignmentIds)
+		.eq("published", true)
+		.eq("is_finalized", true);
+
+	if (finalizedAssignmentsError) {
+		throw new HttpError(
+			500,
+			"Nu am putut verifica starea temelor."
+		);
+	}
+
+	const candidates =
+		(finalizedAssignments || []) as FinalizedAssignment[];
+
+	if (candidates.length === 0) {
+		return null;
+	}
+
+	const classroomIds = [
+		...new Set(
+			candidates.map(
+				(assignment) => assignment.classroom_id
+			)
+		),
+	];
+
+	const {
+		data: memberships,
+		error: membershipsError,
+	} = await supabase
+		.from("classroom_members")
+		.select("classroom_id")
+		.eq("student_id", userId)
+		.in("classroom_id", classroomIds);
+
+	if (membershipsError) {
+		throw new HttpError(
+			500,
+			"Nu am putut verifica apartenența la clasă."
+		);
+	}
+
+	const memberClassroomIds = new Set(
+		(memberships || []).map(
+			(membership) => Number(membership.classroom_id)
+		)
+	);
+
+	return candidates.find((assignment) =>
+		memberClassroomIds.has(
+			assignment.classroom_id
+		)
+	) || null;
 }
 
 // ======================================================
@@ -417,6 +543,24 @@ async function handleSubmit(
 						"Problema nu există.",
 				},
 				404
+			);
+		}
+
+		const finalizedAssignment =
+			await findFinalizedAssignmentForStudent(
+				supabase,
+				userId,
+				problemId
+			);
+
+		if (finalizedAssignment) {
+			return respond(
+				{
+					status: "error",
+					error:
+						`Tema „${finalizedAssignment.title}” este finalizată. Nu mai poți trimite soluții pentru problemele ei.`,
+				},
+				403
 			);
 		}
 

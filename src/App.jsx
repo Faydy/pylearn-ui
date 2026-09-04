@@ -15,6 +15,7 @@ const TeorieLectie = lazy(() => import('./pages/TeorieLectie'));
 const Probleme = lazy(() => import('./pages/Probleme'));
 const Scoruri = lazy(() => import('./pages/Scoruri'));
 const Profile = lazy(() => import('./pages/Profile'));
+const SolutiiTrimise = lazy(() => import('./pages/SolutiiTrimise'));
 const RezolvareProblema = lazy(() => import('./pages/RezolvareProblema'));
 const Capitole = lazy(() => import('./pages/Capitole'));
 const ToateProblemele = lazy(() => import('./pages/ToateProblemele'));
@@ -101,6 +102,10 @@ export default function App() {
             <Route
               path="/profil"
               element={user ? (profileComplete ? <Profile /> : <Navigate to="/creare-profil" replace />) : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/profil/solutii"
+              element={user ? (profileComplete ? <SolutiiTrimise /> : <Navigate to="/creare-profil" replace />) : <Navigate to="/login" replace />}
             />
             <Route
               path="/profil/:userId"

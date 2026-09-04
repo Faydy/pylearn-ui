@@ -1,11 +1,13 @@
-import { AlertTriangle, ArrowLeft, ClipboardPlus, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ClipboardPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AssignmentForm from '../components/assignments/AssignmentForm';
+import AssignmentManagementActions from '../components/assignments/AssignmentManagementActions';
 import TopHeader from '../components/MainArea/TopHeader';
+import PageLoading from '../components/PageLoading';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../supabaseClient';
-import { isTeacher } from '../utils/assignments';
+import { isTeacher, toDueAtISOString } from '../utils/assignments';
 
 export default function EditorTema() {
   const { assignmentId } = useParams();
@@ -16,6 +18,8 @@ export default function EditorTema() {
   const [initialProblemIds, setInitialProblemIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const teacherView = isTeacher(profile, user);
   const editing = Boolean(assignmentId);
@@ -40,7 +44,7 @@ export default function EditorTema() {
 
         const { data: assignmentRow, error: assignmentError } = await supabase
           .from('assignments')
-          .select('id, classroom_id, created_by, title, description, due_at, published')
+          .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, finalized_at')
           .eq('id', assignmentId)
           .maybeSingle();
         if (assignmentError) throw assignmentError;
@@ -67,6 +71,52 @@ export default function EditorTema() {
     fetchEditorData();
   }, [assignmentId, teacherView, user]);
 
+  const handleFinalize = async () => {
+    if (!assignment || assignment.is_finalized) return;
+    if (!window.confirm(`Finalizezi tema „${assignment.title}”? Elevii nu vor mai putea trimite soluții pentru problemele ei.`)) return;
+
+    setFinalizing(true);
+    setMessage({ text: '', type: '' });
+
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .update({ is_finalized: true })
+        .eq('id', assignment.id)
+        .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, finalized_at')
+        .single();
+      if (error) throw error;
+
+      setAssignment(data);
+      setMessage({ text: 'Tema a fost finalizată. Elevii nu mai pot trimite soluții pentru problemele ei.', type: 'success' });
+    } catch (finalizeError) {
+      setMessage({ text: `Tema nu a putut fi finalizată. ${finalizeError.message}`, type: 'error' });
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!assignment) return;
+    if (!window.confirm(`Ștergi definitiv tema „${assignment.title}”?`)) return;
+
+    setDeleting(true);
+    setMessage({ text: '', type: '' });
+
+    try {
+      const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', assignment.id);
+      if (error) throw error;
+
+      navigate('/teme', { replace: true });
+    } catch (deleteError) {
+      setMessage({ text: `Tema nu a putut fi ștearsă. ${deleteError.message}`, type: 'error' });
+      setDeleting(false);
+    }
+  };
+
   const handleSave = async (values) => {
     const normalizedTitle = values.title.trim();
     if (normalizedTitle.length === 0) {
@@ -82,6 +132,14 @@ export default function EditorTema() {
       return;
     }
 
+    let dueAt;
+    try {
+      dueAt = toDueAtISOString(values.dueAt);
+    } catch (dateError) {
+      setMessage({ text: dateError.message, type: 'error' });
+      return;
+    }
+
     setSaving(true);
     setMessage({ text: '', type: '' });
     let associationsStage = false;
@@ -92,7 +150,7 @@ export default function EditorTema() {
         classroom_id: Number(values.classroomId),
         title: normalizedTitle,
         description: values.description.trim() || null,
-        due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
+        due_at: dueAt,
       };
 
       if (editing) {
@@ -100,7 +158,7 @@ export default function EditorTema() {
           .from('assignments')
           .update({ ...payload, published: assignment.published })
           .eq('id', assignment.id)
-          .select('id, classroom_id, created_by, title, description, due_at, published')
+          .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, finalized_at')
           .single();
         if (error) throw error;
         savedAssignment = data;
@@ -115,7 +173,7 @@ export default function EditorTema() {
         const { data, error } = await supabase
           .from('assignments')
           .insert({ ...payload, created_by: user.id, published: false })
-          .select('id, classroom_id, created_by, title, description, due_at, published')
+          .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, finalized_at')
           .single();
         if (error) throw error;
         savedAssignment = data;
@@ -135,11 +193,25 @@ export default function EditorTema() {
       if (savedAssignment.published !== values.published) {
         const { data, error: publishError } = await supabase
           .from('assignments')
-          .update({ published: values.published })
+          .update({ published: values.published, due_at: dueAt })
           .eq('id', savedAssignment.id)
-          .select('id, classroom_id, created_by, title, description, due_at, published')
+          .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, finalized_at')
           .single();
         if (publishError) throw publishError;
+        savedAssignment = data;
+      }
+
+      // Do not silently turn a selected deadline into a deadline-less assignment.
+      // The retry also protects creation flows that publish in a second update.
+      if (dueAt && !savedAssignment.due_at) {
+        const { data, error: dueAtError } = await supabase
+          .from('assignments')
+          .update({ due_at: dueAt })
+          .eq('id', savedAssignment.id)
+          .select('id, classroom_id, created_by, title, description, due_at, published, is_finalized, finalized_at')
+          .single();
+        if (dueAtError) throw dueAtError;
+        if (!data.due_at) throw new Error('Deadline-ul nu a putut fi salvat.');
         savedAssignment = data;
       }
 
@@ -157,7 +229,7 @@ export default function EditorTema() {
   };
 
   if (authLoading || loading) {
-    return <div className="flex h-full flex-col"><TopHeader title="Teme" /><div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div></div>;
+    return <PageLoading title="Teme" />;
   }
 
   if (!user || !teacherView) {
@@ -169,6 +241,6 @@ export default function EditorTema() {
   }
 
   return (
-    <div className="flex h-full flex-col"><TopHeader title={editing ? 'Editează tema' : 'Temă nouă'} /><main className="flex-1 overflow-y-auto p-4 sm:p-6"><div className="mx-auto w-full max-w-7xl pb-10"><Link to={editing ? `/teme/${assignmentId}` : '/teme'} className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />Înapoi</Link><div className="mb-8 flex items-center gap-3"><div className="rounded-xl bg-accent/10 p-3 text-accent"><ClipboardPlus className="h-6 w-6" /></div><div className="min-w-0"><h1 className="text-2xl font-bold text-text-main sm:text-3xl">{editing ? 'Editează tema' : 'Creează o temă'}</h1><p className="mt-1 text-muted">Selectează probleme existente și publică atunci când tema este gata.</p></div></div>{message.text && <div className="mb-6 rounded-xl border border-hard/20 bg-hard/10 p-4 text-sm text-hard">{message.text}</div>}{classrooms.length === 0 ? <div className="rounded-2xl border border-dashed border-border bg-ink p-6 text-center sm:p-8"><h2 className="text-xl font-bold text-text-main">Nu ai clase disponibile.</h2><p className="mt-2 text-sm text-muted">O temă poate fi creată numai într-o clasă pe care o administrezi.</p></div> : <AssignmentForm classrooms={classrooms} assignment={assignment} initialProblemIds={initialProblemIds} onSave={handleSave} saving={saving} />}</div></main></div>
+    <div className="flex h-full flex-col"><TopHeader title={editing ? 'Editează tema' : 'Temă nouă'} /><main className="flex-1 overflow-y-auto p-4 sm:p-6"><div className="mx-auto w-full max-w-7xl pb-10"><Link to={editing ? `/teme/${assignmentId}` : '/teme'} className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />Înapoi</Link><div className="mb-8 flex items-center gap-3"><div className="rounded-xl bg-accent/10 p-3 text-accent"><ClipboardPlus className="h-6 w-6" /></div><div className="min-w-0"><h1 className="text-2xl font-bold text-text-main sm:text-3xl">{editing ? 'Editează tema' : 'Creează o temă'}</h1><p className="mt-1 text-muted">Selectează probleme existente și publică atunci când tema este gata.</p></div></div>{message.text && <div className={`mb-6 rounded-xl border p-4 text-sm ${message.type === 'success' ? 'border-easy/20 bg-easy/10 text-easy' : 'border-hard/20 bg-hard/10 text-hard'}`}>{message.text}</div>}{classrooms.length === 0 ? <div className="rounded-2xl border border-dashed border-border bg-ink p-6 text-center sm:p-8"><h2 className="text-xl font-bold text-text-main">Nu ai clase disponibile.</h2><p className="mt-2 text-sm text-muted">O temă poate fi creată numai într-o clasă pe care o administrezi.</p></div> : <><AssignmentForm classrooms={classrooms} assignment={assignment} initialProblemIds={initialProblemIds} onSave={handleSave} saving={saving} />{editing && assignment && <AssignmentManagementActions assignment={assignment} finalizing={finalizing} deleting={deleting} onFinalize={handleFinalize} onDelete={handleDelete} />}</>}</div></main></div>
   );
 }

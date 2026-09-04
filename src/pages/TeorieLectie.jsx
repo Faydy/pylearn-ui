@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, ChevronRight, Clock, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, ChevronRight, Clock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -7,6 +7,7 @@ import TheoryContent from '../components/theory/TheoryContent';
 import TheoryProgress from '../components/theory/TheoryProgress';
 import TheorySidebar from '../components/theory/TheorySidebar';
 import TopHeader from '../components/MainArea/TopHeader';
+import PageLoading from '../components/PageLoading';
 import { supabase } from '../supabaseClient';
 import { formatReadTime, getRelationRow, getTheoryMessage, sortTheoryLessons } from '../utils/theory';
 
@@ -78,7 +79,7 @@ export default function TeorieLectie() {
     setSavingProgress(false);
   };
 
-  if (loading) return <div className="flex h-full flex-col"><TopHeader title="Teorie" /><div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div></div>;
+  if (loading) return <PageLoading title="Teorie" />;
   if (error || !lesson) return <div className="flex h-full flex-col"><TopHeader title="Teorie" /><main className="p-4 sm:p-6"><div className="mx-auto max-w-3xl rounded-2xl border border-hard/20 bg-hard/10 p-5 text-hard"><AlertTriangle className="inline h-5 w-5" /><h1 className="mt-3 text-xl font-bold">Lecția nu a putut fi încărcată.</h1><p className="mt-2 text-sm">{error || 'Lecția nu a fost găsită.'}</p><Link to="/teorie" className="mt-5 inline-flex font-bold underline">Înapoi la teorie</Link></div></main></div>;
 
   const chapter = lesson.chapters;

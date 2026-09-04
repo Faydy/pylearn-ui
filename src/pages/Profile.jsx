@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2, LogOut, Mail, Save, User, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Loader2, LogOut, Mail, Save, User, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -9,7 +9,7 @@ import { supabase } from '../supabaseClient';
 import { AVATAR_OPTIONS, getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../utils/profile';
 import { normalizeUsername } from '../utils/username';
 
-const SUBMISSIONS_PAGE_SIZE = 8;
+const SUBMISSIONS_PREVIEW_SIZE = 5;
 
 export default function Profile() {
   const { user, refreshAuth } = useAuth();
@@ -30,7 +30,6 @@ export default function Profile() {
   const [submissions, setSubmissions] = useState([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [submissionsError, setSubmissionsError] = useState('');
-  const [hasMoreSubmissions, setHasMoreSubmissions] = useState(false);
   const normalizedPreview = normalizeUsername(username);
 
   const loadSolvedCount = useCallback(async () => {
@@ -42,14 +41,14 @@ export default function Profile() {
     if (!error) setSolvedCount(Number(data) || 0);
   }, [viewedUserId]);
 
-  const loadOwnSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
+  const loadOwnSubmissions = useCallback(async () => {
     if (!ownProfile || !user) return;
 
     setSubmissionsLoading(true);
     setSubmissionsError('');
     const { data, error } = await supabase.rpc('get_own_recent_submissions', {
-      p_offset: offset,
-      p_limit: SUBMISSIONS_PAGE_SIZE + 1,
+      p_offset: 0,
+      p_limit: SUBMISSIONS_PREVIEW_SIZE,
     });
 
     if (error) {
@@ -58,14 +57,7 @@ export default function Profile() {
       return;
     }
 
-    const receivedSubmissions = data || [];
-    const nextSubmissions = receivedSubmissions.slice(0, SUBMISSIONS_PAGE_SIZE);
-    setSubmissions((current) => {
-      if (!append) return nextSubmissions;
-      const knownIds = new Set(current.map((submission) => submission.submission_id));
-      return [...current, ...nextSubmissions.filter((submission) => !knownIds.has(submission.submission_id))];
-    });
-    setHasMoreSubmissions(receivedSubmissions.length > SUBMISSIONS_PAGE_SIZE);
+    setSubmissions(data || []);
     setSubmissionsLoading(false);
   }, [ownProfile, user]);
 
@@ -84,7 +76,6 @@ export default function Profile() {
       setSolvedCount(0);
       setSubmissions([]);
       setSubmissionsError('');
-      setHasMoreSubmissions(false);
 
       try {
         if (ownProfile) {
@@ -209,7 +200,7 @@ export default function Profile() {
     await supabase.auth.signOut();
   };
 
-  if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>;
+  if (loading) return <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center lg:min-h-[calc(100dvh-4rem)]"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>;
 
   if (profileError || !publicProfile) {
     return <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8"><section className="rounded-2xl border border-hard/20 bg-hard/10 p-6 text-center sm:p-8"><AlertTriangle className="mx-auto h-8 w-8 text-hard" /><h1 className="mt-4 text-xl font-bold text-text-main">Utilizatorul nu a fost găsit.</h1><p className="mt-2 text-sm text-muted">{profileError || 'Profilul nu este disponibil.'}</p><Link to="/scoruri" className="mt-5 inline-flex font-bold text-accent transition-colors hover:text-text-main">Înapoi la clasament</Link></section></div>;
@@ -220,7 +211,24 @@ export default function Profile() {
       <ProfileHeader profile={publicProfile} ownProfile={ownProfile} />
       <div className="mt-6"><ProfileStats profile={publicProfile} solvedCount={solvedCount} /></div>
 
-      {ownProfile && <div className="mt-6"><SubmittedSolutions submissions={submissions} loading={submissionsLoading} error={submissionsError} hasMore={hasMoreSubmissions} onLoadMore={() => loadOwnSubmissions({ offset: submissions.length, append: true })} onLoadSolution={loadSubmissionSolution} /></div>}
+      {ownProfile && (
+        <div className="mt-6">
+          <SubmittedSolutions
+            submissions={submissions}
+            loading={submissionsLoading}
+            error={submissionsError}
+            hasMore={false}
+            onLoadSolution={loadSubmissionSolution}
+            description="Ultimele 5 soluții pe care le-ai trimis."
+          />
+          <div className="mt-4 text-center">
+            <Link to="/profil/solutii" className="inline-flex items-center gap-2 rounded-xl border border-border bg-ink px-4 py-2.5 text-sm font-bold text-text-main transition-colors hover:border-accent hover:text-accent">
+              Vezi toate soluțiile trimise
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {ownProfile && (
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
