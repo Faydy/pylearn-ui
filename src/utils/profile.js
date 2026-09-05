@@ -16,37 +16,25 @@ export const PROFILE_ROLES = [
   },
 ];
 
-export const AVATAR_OPTIONS = [
+export const ONBOARDING_AVATAR_SEEDS = [
   'Ada',
   'Felix',
   'Nova',
   'Milo',
   'Sofia',
   'Theo',
-  'Luna',
-  'Leo',
-  'Maya',
-  'Noah',
-  'Iris',
-  'Alex',
 ];
 
+export const AVATAR_OPTIONS = ONBOARDING_AVATAR_SEEDS;
+
 const FEMININE_AVATAR_SEEDS = new Set([
-  'Ada',
-  'Nova',
-  'Sofia',
-  'Luna',
-  'Maya',
-  'Iris',
+  'Ada', 'Nova', 'Sofia', 'Luna', 'Maya', 'Iris',
+  'Zara', 'Freya', 'Lyra', 'Vega', 'Astra',
 ]);
 
 const MASCULINE_AVATAR_SEEDS = new Set([
-  'Felix',
-  'Milo',
-  'Theo',
-  'Leo',
-  'Noah',
-  'Alex',
+  'Felix', 'Milo', 'Theo', 'Leo', 'Noah', 'Alex',
+  'Atlas', 'Orion', 'Kai', 'Jasper', 'Dorian',
 ]);
 
 export function normalizeProfileRole(role) {
@@ -64,11 +52,20 @@ export function getAvatarUrl(seed) {
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(normalizedSeed)}${appearance}`;
 }
 
-export function getProfileAvatarSeed(profile, user) {
-  const avatar = profile?.avatar || user?.user_metadata?.avatar;
+export function isOnboardingAvatarSeed(seed) {
+  return ONBOARDING_AVATAR_SEEDS.includes(seed);
+}
 
-  if (AVATAR_OPTIONS.includes(avatar)) {
-    return avatar;
+export function getProfileAvatarSeed(profile, user) {
+  const storedAvatar = profile?.avatar;
+  const metadataAvatar = user?.user_metadata?.avatar;
+
+  if (typeof storedAvatar === 'string' && storedAvatar.trim()) {
+    return storedAvatar;
+  }
+
+  if (AVATAR_OPTIONS.includes(metadataAvatar)) {
+    return metadataAvatar;
   }
 
   return profile?.username || user?.email || 'pyLearn';
@@ -80,13 +77,13 @@ export function isEmailVerified(user) {
 
 export function isProfileComplete(profile, user) {
   const metadata = user?.user_metadata || {};
-  const hasSupportedAvatar = AVATAR_OPTIONS.includes(metadata.avatar);
   const storedRole = normalizeProfileRole(profile?.role || metadata.role);
   const hasSupportedRole = PROFILE_ROLES.some((role) => role.value === storedRole);
 
   return Boolean(
     profile?.username
-    && hasSupportedAvatar
+    && typeof profile?.avatar === 'string'
+    && profile.avatar.trim()
     && hasSupportedRole
     && isEmailVerified(user),
   );

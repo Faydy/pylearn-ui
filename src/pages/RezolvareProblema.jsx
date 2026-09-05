@@ -5,11 +5,12 @@ import Editor from '@monaco-editor/react';
 import {
     Loader2, Star, ChevronRight, Share2, Clock,
     FileText, SlidersHorizontal, Lightbulb, Play, Send,
-    RotateCcw, Terminal, AlertTriangle, CheckCircle2, LockKeyhole
+    RotateCcw, Terminal, AlertTriangle, CheckCircle2, Coins, LockKeyhole
 } from 'lucide-react';
 import TopHeader from "../components/MainArea/TopHeader";
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
 import { getApiEndpoint } from '../utils/api';
+import { useAuth } from '../AuthContext';
 
 const PROBLEM_SUBMISSIONS_PAGE_SIZE = 20;
 
@@ -30,6 +31,7 @@ function getApiErrorMessage(response, data, fallback) {
 
 export default function RezolvareProblema() {
     const { id } = useParams();
+    const { refreshAuth } = useAuth();
     const [problema, setProblema] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -318,6 +320,13 @@ export default function RezolvareProblema() {
 
         if (data.status === 'accepted') {
             setIsSolved(true);
+            if (data.firstSolve) {
+                try {
+                    await refreshAuth();
+                } catch (refreshError) {
+                    console.error('Profilul nu a putut fi reîmprospătat după submit:', refreshError.message);
+                }
+            }
         }
 
     } catch (err) {
@@ -602,6 +611,15 @@ export default function RezolvareProblema() {
                                                     {submitResult.status === 'accepted' ? '✓ Acceptat' : `✗ ${submitResult.status}`}
                                                     {' — '}{submitResult.passedTests}/{submitResult.totalTests} teste trecute
                                                 </div>
+                                                {submitResult.status === 'accepted' && submitResult.firstSolve && (
+                                                    <div className="rounded-xl border border-easy/20 bg-easy/10 p-3 text-sm font-bold text-easy">
+                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                            <span>Prima rezolvare: +{Number(submitResult.xpAwarded) || 0} XP</span>
+                                                            {Number(submitResult.coinsAwarded) > 0 && <span className="inline-flex items-center gap-1"><Coins className="h-4 w-4" />+{submitResult.coinsAwarded} monede</span>}
+                                                        </div>
+                                                        {submitResult.leveledUp && <p className="mt-2">Ai ajuns la nivelul {submitResult.newLevel}. <Link to="/shop" className="underline decoration-accent underline-offset-2 hover:text-text-main">Vezi Shop-ul</Link></p>}
+                                                    </div>
+                                                )}
                                                 {submitResult.testResults.map((t, i) => (
                                                     <div key={i} className={`flex items-center gap-2 text-xs ${t.passed ? 'text-easy' : 'text-hard'}`}>
                                                         {t.passed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}

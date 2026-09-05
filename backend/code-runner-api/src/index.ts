@@ -801,6 +801,67 @@ async function handleSubmit(
 			progressData?.category_progress ??
 			null;
 
+		const safeXpAwarded = Math.max(
+			Number(xpAwarded) || 0,
+			0
+		);
+		const safeTotalXp =
+			totalXp === null
+				? null
+				: Math.max(Number(totalXp) || 0, 0);
+		const previousTotalXp =
+			safeTotalXp === null
+				? null
+				: Math.max(safeTotalXp - safeXpAwarded, 0);
+		const calculatedCoinsAwarded =
+			firstSolve
+				&& safeTotalXp !== null
+				&& previousTotalXp !== null
+				? Math.max(
+					Math.floor(safeTotalXp / 10)
+						- Math.floor(previousTotalXp / 10),
+					0
+				)
+				: 0;
+		const oldLevel =
+			previousTotalXp === null
+				? null
+				: Math.floor(previousTotalXp / 100);
+		const newLevel =
+			safeTotalXp === null
+				? null
+				: Math.floor(safeTotalXp / 100);
+		const leveledUp =
+			oldLevel !== null
+				&& newLevel !== null
+				&& newLevel > oldLevel;
+
+		let coinBalance: number | null = null;
+		let coinsAwarded = 0;
+		if (firstSolve) {
+			const {
+				data: economyProfile,
+				error: economyProfileError,
+			} = await supabase
+				.from("profiles")
+				.select("coin_balance")
+				.eq("id", userId)
+				.maybeSingle();
+
+			if (economyProfileError) {
+				console.warn(
+					"Could not load economy balance after submission:",
+					economyProfileError.message
+				);
+			} else if (economyProfile) {
+				coinBalance = Math.max(
+					Number(economyProfile.coin_balance) || 0,
+					0
+				);
+				coinsAwarded = calculatedCoinsAwarded;
+			}
+		}
+
 		// ==================================================
 		// 12. Returnăm rezultatul
 		// ==================================================
@@ -817,6 +878,11 @@ async function handleSubmit(
 			xpAwarded,
 			totalXp,
 			categoryProgress,
+			coinsAwarded,
+			coinBalance,
+			oldLevel,
+			newLevel,
+			leveledUp,
 
 			runtimeMs:
 				maxRuntimeMs || null,

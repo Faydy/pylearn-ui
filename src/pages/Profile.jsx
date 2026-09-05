@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Loader2, LogOut, Mail, Save, User, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Loader2, LogOut, Mail, Save, ShoppingBag, User, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -7,7 +7,7 @@ import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileStats from '../components/profile/ProfileStats';
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
 import { supabase } from '../supabaseClient';
-import { AVATAR_OPTIONS, getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../utils/profile';
+import { getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../utils/profile';
 import { normalizeUsername } from '../utils/username';
 
 const SUBMISSIONS_PREVIEW_SIZE = 5;
@@ -24,7 +24,6 @@ export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [publicProfile, setPublicProfile] = useState(null);
   const [username, setUsername] = useState('');
-  const [avatar, setAvatar] = useState('');
   const [role, setRole] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [profileError, setProfileError] = useState('');
@@ -149,7 +148,6 @@ export default function Profile() {
             setUserAuth(authData.user);
             setProfileData(ownRecord);
             setUsername(ownRecord.username || '');
-            setAvatar(ownRecord.avatar || authData.user.user_metadata?.avatar || '');
             setRole(normalizeProfileRole(ownRecord.role || authData.user.user_metadata?.role || ''));
           }
         } else if (!cancelled) {
@@ -211,24 +209,23 @@ export default function Profile() {
     try {
       const normalizedUsername = normalizeUsername(username);
       if (normalizedUsername.length < 3) throw new Error('Username-ul trebuie să aibă minim 3 caractere.');
-      if (!avatar) throw new Error('Alege un avatar.');
       if (!PROFILE_ROLES.some((option) => option.value === role)) throw new Error('Alege rolul tău.');
 
       const { error: profileUpdateError } = await supabase
         .from('profiles')
-        .update({ username: normalizedUsername, avatar, role })
+        .update({ username: normalizedUsername, role })
         .eq('id', userAuth.id);
       if (profileUpdateError) {
         if (profileUpdateError.code === '23505') throw new Error('Acest username este deja luat. Te rugăm să alegi altul.');
         throw profileUpdateError;
       }
 
-      const { error: metadataError } = await supabase.auth.updateUser({ data: { avatar, role } });
-      if (metadataError) throw new Error(`Datele profilului au fost salvate, dar avatarul nu a putut fi actualizat. ${metadataError.message}`);
+      const { error: metadataError } = await supabase.auth.updateUser({ data: { role } });
+      if (metadataError) throw new Error(`Datele profilului au fost salvate, dar rolul nu a putut fi actualizat. ${metadataError.message}`);
 
-      const nextProfile = { ...profileData, username: normalizedUsername, avatar, role };
+      const nextProfile = { ...profileData, username: normalizedUsername, role };
       setProfileData(nextProfile);
-      setPublicProfile((current) => (current ? { ...current, username: normalizedUsername, avatar, role } : current));
+      setPublicProfile((current) => (current ? { ...current, username: normalizedUsername, role } : current));
       setUsername(normalizedUsername);
       const refreshedUser = await refreshAuth();
       setUserAuth(refreshedUser);
@@ -252,7 +249,7 @@ export default function Profile() {
 
   return (
     <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
-      <ProfileHeader profile={publicProfile} ownProfile={ownProfile} />
+      <ProfileHeader profile={publicProfile} ownProfile={ownProfile} coinBalance={profileData?.coin_balance} />
       <div className="mt-6"><ProfileStats profile={publicProfile} solvedCount={solvedCount} /></div>
 
       {ownProfile && (
@@ -300,9 +297,9 @@ export default function Profile() {
             <form onSubmit={handleUpdate} className="mt-6 space-y-5">
               <div><label className="mb-2 block text-sm font-bold text-muted">Adresă email</label><div className="relative"><Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input type="email" value={userAuth?.email || ''} disabled className="w-full cursor-not-allowed rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-muted opacity-70" /></div></div>
               <div><label htmlFor="username" className="mb-2 block text-sm font-bold text-muted">Nume de utilizator</label><div className="relative"><User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} required className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-text-main outline-none transition-colors focus:border-accent" /></div><p className="mt-2 text-xs text-muted">Poți scrie cu spații și litere mari. La salvare, username-ul devine lowercase și spațiile se transformă în <span className="font-mono">_</span>.</p>{normalizedPreview && <p className="mt-1 text-xs text-accent">Va fi salvat ca: <span className="font-mono">{normalizedPreview}</span></p>}</div>
-              <fieldset><legend className="mb-3 block text-sm font-bold text-muted">Avatar</legend><div className="grid grid-cols-3 gap-3 sm:grid-cols-6">{AVATAR_OPTIONS.map((seed) => { const selected = avatar === seed; return <button key={seed} type="button" onClick={() => setAvatar(seed)} aria-label={`Alege avatarul ${seed}`} aria-pressed={selected} className={`rounded-xl border p-2 transition-all ${selected ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-border bg-background hover:border-muted'}`}><img src={getAvatarUrl(seed)} alt="" className="aspect-square w-full rounded-lg bg-sidebar" /></button>; })}</div></fieldset>
+              <section className="rounded-xl border border-border bg-background p-4"><p className="text-sm font-bold text-muted">Avatar activ</p><div className="mt-3 flex items-center gap-3"><img src={getAvatarUrl(profileData?.avatar)} alt="" className="h-14 w-14 rounded-xl border border-border bg-sidebar" /><div><p className="font-bold text-text-main">Avatarul se schimbă din Shop</p><Link to="/shop" className="mt-1 inline-flex items-center gap-2 text-sm font-bold text-accent transition-colors hover:text-text-main"><ShoppingBag className="h-4 w-4" />Gestionează avatarele</Link></div></div></section>
               <fieldset><legend className="mb-3 flex items-center gap-2 text-sm font-bold text-muted"><Users className="h-4 w-4 text-accent" />Rolul tău</legend><div className="grid gap-3 sm:grid-cols-3">{PROFILE_ROLES.map((option) => { const selected = role === option.value; return <button key={option.value} type="button" onClick={() => setRole(option.value)} aria-pressed={selected} className={`rounded-xl border p-4 text-left transition-all ${selected ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-border bg-background hover:border-muted'}`}><span className="block font-bold text-text-main">{option.label}</span><span className="mt-1 block text-xs text-muted">{option.description}</span></button>; })}</div></fieldset>
-              <div className="flex justify-end"><button type="submit" disabled={saving || (normalizedPreview === profileData?.username && avatar === (profileData?.avatar || userAuth?.user_metadata?.avatar || '') && role === normalizeProfileRole(profileData?.role || userAuth?.user_metadata?.role || ''))} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvează modificările</button></div>
+              <div className="flex justify-end"><button type="submit" disabled={saving || (normalizedPreview === profileData?.username && role === normalizeProfileRole(profileData?.role || userAuth?.user_metadata?.role || ''))} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvează modificările</button></div>
             </form>
           </section>
           <div className="space-y-6">

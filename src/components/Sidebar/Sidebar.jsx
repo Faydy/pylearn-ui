@@ -7,7 +7,7 @@ import SidebarComponent from "./SidebarComponent";
 import Logo from "./Logo";
 
 // Iconițele (am adăugat LogIn pentru butonul de conectare)
-import { LayoutDashboard, BookOpen, ClipboardList, School, Trophy, Terminal, LogIn, Megaphone } from 'lucide-react';
+import { LayoutDashboard, BookOpen, ClipboardList, School, Trophy, Terminal, LogIn, Megaphone, ShoppingBag } from 'lucide-react';
 
 export default function Sidebar() {
   const { user } = useAuth();
@@ -27,6 +27,7 @@ export default function Sidebar() {
         <SidebarComponent name="Teorie" icon={BookOpen} to="/teorie" />
         <SidebarComponent name="Clase" icon={School} to="/clase" />
         <SidebarComponent name="Teme" icon={ClipboardList} to="/teme" />
+        <SidebarComponent name="Shop" icon={ShoppingBag} to="/shop" />
         <SidebarComponent name="Anunțuri" icon={Megaphone} to="/anunturi" />
         <SidebarComponent name="Scoruri" icon={Trophy} to="/scoruri" />
       </div>

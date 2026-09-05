@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardList, LayoutDashboard, LogIn, Megaphone, School, Terminal, Trophy, UserRound } from 'lucide-react';
+import { BookOpen, ClipboardList, LayoutDashboard, LogIn, Megaphone, School, ShoppingBag, Terminal, Trophy, UserRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 
@@ -8,6 +8,7 @@ const navigationItems = [
   { label: 'Teorie', to: '/teorie', icon: BookOpen },
   { label: 'Clase', to: '/clase', icon: School },
   { label: 'Teme', to: '/teme', icon: ClipboardList },
+  { label: 'Shop', to: '/shop', icon: ShoppingBag },
   { label: 'Anunțuri', to: '/anunturi', icon: Megaphone },
   { label: 'Scoruri', to: '/scoruri', icon: Trophy },
 ];

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, Mail, RefreshCw, User, Users } from 'lucide-react';
+import { CheckCircle2, Coins, Loader2, Mail, RefreshCw, User, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { useAuth } from './AuthContext';
@@ -112,7 +112,7 @@ export default function CreareProfil() {
     }
 
     if (!avatar) {
-      setMessage({ text: 'Alege un avatar.', type: 'error' });
+      setMessage({ text: 'Alege primul avatar.', type: 'error' });
       return;
     }
 
@@ -126,13 +126,30 @@ export default function CreareProfil() {
     try {
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, username: normalizedUsername, avatar, role }, { onConflict: 'id' });
+        .upsert({ id: user.id, username: normalizedUsername, role }, { onConflict: 'id' });
 
       if (profileError) {
         if (profileError.code === '23505') {
           throw new Error('Acest username este deja luat. Te rugăm să alegi altul.');
         }
         throw profileError;
+      }
+
+      const { data: selectedAvatar, error: selectedAvatarError } = await supabase
+        .from('avatar_catalog')
+        .select('id')
+        .eq('seed', avatar)
+        .eq('is_active', true)
+        .eq('is_onboarding_choice', true)
+        .maybeSingle();
+      if (selectedAvatarError?.code === '42703') throw new Error('Sistemul de avatare nu este configurat încă. Aplică migrarea necesară și reîncarcă pagina.');
+      if (selectedAvatarError || !selectedAvatar) throw new Error('Avatarul selectat nu este disponibil. Reîncarcă pagina și încearcă din nou.');
+
+      const { error: avatarError } = await supabase.rpc('claim_initial_avatar', { p_avatar_id: selectedAvatar.id });
+      if (avatarError) {
+        if (avatarError.code === 'PGRST202') throw new Error('Sistemul de alegere inițială nu este configurat încă. Aplică migrarea necesară și reîncarcă pagina.');
+        if ((avatarError.message || '').includes('Ai folosit deja')) throw new Error('Ai ales deja avatarul gratuit. Poți gestiona avatarele din Shop.');
+        throw new Error('Avatarul inițial nu a putut fi salvat. Încearcă din nou.');
       }
 
       const { error: metadataError } = await supabase.auth.updateUser({
@@ -228,8 +245,12 @@ export default function CreareProfil() {
             </div>
 
             <fieldset>
-              <legend className="mb-3 block text-sm font-bold text-text-main">Alege-ți avatarul</legend>
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <legend className="text-lg font-bold text-text-main">Alege-ți primul avatar</legend>
+              <div className="mt-3 rounded-xl border border-accent/20 bg-accent/10 p-4">
+                <div className="flex items-center gap-2 font-bold text-accent"><Coins className="h-4 w-4" />Prima alegere este gratuită</div>
+                <p className="mt-2 text-sm leading-6 text-muted">Poți alege gratuit un singur avatar. După crearea profilului, celelalte avatare vor putea fi deblocate din Shop folosind monede câștigate prin rezolvarea problemelor.</p>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {AVATAR_OPTIONS.map((seed) => {
                   const selected = avatar === seed;
 
@@ -240,9 +261,10 @@ export default function CreareProfil() {
                       onClick={() => setAvatar(seed)}
                       aria-label={`Alege avatarul ${seed}`}
                       aria-pressed={selected}
-                      className={`group rounded-xl border p-2 transition-all ${selected ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-border bg-background hover:border-muted'}`}
+                      className={`group relative rounded-xl border p-2 transition-all ${selected ? 'border-accent bg-accent/10 ring-1 ring-accent' : 'border-border bg-background hover:border-muted'}`}
                     >
                       <img src={getAvatarUrl(seed)} alt="" className="aspect-square w-full rounded-lg bg-sidebar" />
+                      {selected && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[10px] font-black text-ink"><CheckCircle2 className="h-3 w-3" />Selectat</span>}
                     </button>
                   );
                 })}
@@ -277,7 +299,7 @@ export default function CreareProfil() {
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving && <Loader2 className="h-5 w-5 animate-spin" />}
-              Finalizează profilul
+              {avatar ? 'Creează profilul cu acest avatar' : 'Alege gratuit un avatar'}
             </button>
           </form>
         </section>

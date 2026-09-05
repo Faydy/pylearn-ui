@@ -29,6 +29,7 @@ const Clase = lazy(() => import('./pages/Clase'));
 const DetaliiClasa = lazy(() => import('./pages/DetaliiClasa'));
 const Anunturi = lazy(() => import('./pages/Anunturi'));
 const Notificari = lazy(() => import('./pages/Notificari'));
+const Shop = lazy(() => import('./pages/Shop'));
 const Auth = lazy(() => import('./Auth'));
 const CreareProfil = lazy(() => import('./CreareProfil'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="/scoruri" element={<Scoruri />} />
             <Route path="/anunturi" element={<Anunturi />} />
             <Route path="/notificari" element={user ? <Notificari /> : <Navigate to="/login" replace />} />
+            <Route path="/shop" element={user ? (profileComplete ? <Shop /> : <Navigate to="/creare-profil" replace />) : <Navigate to="/login" replace />} />
             <Route path="/teme" element={<Teme />} />
             <Route path="/teme/toate" element={<Teme showAll />} />
             <Route path="/teme/noua" element={<EditorTema />} />
