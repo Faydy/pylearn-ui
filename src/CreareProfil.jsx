@@ -147,8 +147,13 @@ export default function CreareProfil() {
 
       const { error: avatarError } = await supabase.rpc('claim_initial_avatar', { p_avatar_id: selectedAvatar.id });
       if (avatarError) {
+        console.error('Initial avatar claim failed:', avatarError);
         if (avatarError.code === 'PGRST202') throw new Error('Sistemul de alegere inițială nu este configurat încă. Aplică migrarea necesară și reîncarcă pagina.');
         if ((avatarError.message || '').includes('Ai folosit deja')) throw new Error('Ai ales deja avatarul gratuit. Poți gestiona avatarele din Shop.');
+        if (avatarError.code === '42501' || /row-level security|permission denied/i.test(avatarError.message || '')) {
+          throw new Error('Alegerea avatarului necesită ultima migrare a sistemului Shop. Aplică migrarea 202609050015 și reîncarcă pagina.');
+        }
+        if (avatarError.message) throw new Error(avatarError.message);
         throw new Error('Avatarul inițial nu a putut fi salvat. Încearcă din nou.');
       }
 
