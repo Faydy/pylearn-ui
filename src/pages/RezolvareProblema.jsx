@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Editor from '@monaco-editor/react';
 import {
     Loader2, Star, ChevronRight, Share2, Clock,
     FileText, SlidersHorizontal, Lightbulb, Play, Send,
-    RotateCcw, Terminal, AlertTriangle, CheckCircle2, Coins, LockKeyhole
+    RotateCcw, Terminal, AlertTriangle, CheckCircle2, Coins, LockKeyhole, Code2
 } from 'lucide-react';
 import TopHeader from "../components/MainArea/TopHeader";
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
 import { getApiEndpoint } from '../utils/api';
+import { registerPythonCompletionProvider } from '../utils/pythonCompletions';
 import { useAuth } from '../AuthContext';
 
 const PROBLEM_SUBMISSIONS_PAGE_SIZE = 20;
+const AUTOCOMPLETE_STORAGE_KEY = 'pylearn-editor-autocomplete';
 
 async function parseApiJson(response) {
     try {
@@ -36,6 +38,14 @@ export default function RezolvareProblema() {
     const [loading, setLoading] = useState(true);
 
     const [code, setCode] = useState('');
+    const editorRef = useRef(null);
+    const [autocompleteEnabled, setAutocompleteEnabled] = useState(() => {
+        try {
+            return localStorage.getItem(AUTOCOMPLETE_STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    });
     const [isSolved, setIsSolved] = useState(false);
     const [activeTab, setActiveTab] = useState('output');
     const [output, setOutput] = useState('');
@@ -51,6 +61,30 @@ export default function RezolvareProblema() {
     const [finalizedAssignment, setFinalizedAssignment] = useState(null);
     const [submissionLockError, setSubmissionLockError] = useState('');
     const isSubmissionLocked = Boolean(finalizedAssignment || submissionLockError);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(AUTOCOMPLETE_STORAGE_KEY, String(autocompleteEnabled));
+        } catch {
+            // Keep the toggle usable when browser storage is unavailable.
+        }
+    }, [autocompleteEnabled]);
+
+    const handleToggleAutocomplete = () => {
+        if (autocompleteEnabled) {
+            editorRef.current?.trigger('autocomplete-toggle', 'hideSuggestWidget', {});
+            editorRef.current?.trigger('autocomplete-toggle', 'closeParameterHints', {});
+        }
+        setAutocompleteEnabled((enabled) => !enabled);
+    };
+
+    const handleEditorMount = useCallback((editor, monaco) => {
+        editorRef.current = editor;
+        const completionProvider = registerPythonCompletionProvider(monaco);
+        // onMount runs once per editor, not on re-renders or problem-id changes.
+        // Tie the registration to Monaco's lifetime, including React unmounts.
+        editor.onDidDispose(() => completionProvider.dispose());
+    }, []);
 
     const loadProblemSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
         const problemId = Number(id);
@@ -487,25 +521,38 @@ export default function RezolvareProblema() {
                     </div>
 
                     {/* COLOANA DREAPTĂ (Editor + Terminal) */}
-                    <div className="flex min-h-[42rem] flex-col overflow-hidden rounded-2xl border border-border bg-[#1e1e1e] shadow-2xl xl:min-h-0">
+                    <div className="@container/editor flex min-h-[42rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-[#1e1e1e] shadow-2xl xl:min-h-0">
 
                         {/* Toolbar Editor */}
-                        <div className="flex flex-col gap-3 border-b border-border/50 bg-[#2d2d2d] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                                <div className="hidden gap-1.5 sm:flex">
+                        <div className="flex items-center justify-between gap-2 border-b border-border/50 bg-[#2d2d2d] px-2 py-3 @[32rem]/editor:px-3 @[42rem]/editor:px-4">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <div className="hidden shrink-0 gap-1.5 @[48rem]/editor:flex">
                                     <div className="w-3 h-3 rounded-full bg-hard"></div>
                                     <div className="w-3 h-3 rounded-full bg-medium"></div>
                                     <div className="w-3 h-3 rounded-full bg-easy"></div>
                                 </div>
-                                <div className="flex items-center gap-2 bg-[#1e1e1e] px-3 py-1 rounded-lg text-sm text-text-main font-mono border border-border/50">
-                                    <span className="text-[#3b82f6]">Python</span> main.py
+                                <div className="flex min-w-0 items-center gap-2 whitespace-nowrap rounded-lg border border-border/50 bg-[#1e1e1e] px-2 py-1 font-mono text-sm text-text-main @[34rem]/editor:px-3">
+                                    <span className="hidden text-[#3b82f6] @[34rem]/editor:inline">Python</span>
+                                    <span className="truncate" title="main.py">main.py</span>
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <div className="flex shrink-0 items-center gap-1 @[32rem]/editor:gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAutocomplete}
+                                    aria-pressed={autocompleteEnabled}
+                                    aria-label={autocompleteEnabled ? 'Dezactivează autocompletarea' : 'Activează autocompletarea'}
+                                    title={autocompleteEnabled ? 'Dezactivează autocompletarea' : 'Activează autocompletarea'}
+                                    className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${autocompleteEnabled ? 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/20' : 'border-border text-muted hover:text-text-main'}`}
+                                >
+                                    <Code2 className="h-4 w-4" aria-hidden="true" />
+                                    <span className="hidden @[42rem]/editor:inline">Autocompletare:</span>
+                                    <span>Autocompletare</span>
+                                </button>
                                 <button
                                     onClick={handleResetCode}
-                                    className="text-muted hover:text-text-main p-1.5 transition-colors"
+                                    className="shrink-0 p-1.5 text-muted transition-colors hover:text-text-main"
                                     title="Resetează codul la varianta inițială"
                                 >
                                     <RotateCcw className="w-4 h-4" />
@@ -513,23 +560,26 @@ export default function RezolvareProblema() {
                                 <button
                                     onClick={handleRun}
                                     disabled={isRunning}
-                                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-ink px-4 py-1.5 text-sm font-bold text-text-main transition-colors hover:border-text-main disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                                    aria-label={isRunning ? 'Rulează...' : 'Rulează'}
+                                    title={isRunning ? 'Rulează...' : 'Rulează codul'}
+                                    className="flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-ink px-2 text-sm font-bold text-text-main transition-colors hover:border-text-main disabled:cursor-not-allowed disabled:opacity-50 @[32rem]/editor:px-3"
                                 >
                                     {isRunning ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
                                         <Play className="w-4 h-4" />
                                     )}
-                                    {isRunning ? 'Rulează...' : 'Rulează'}
+                                    <span className="hidden @[32rem]/editor:inline">{isRunning ? 'Rulează...' : 'Rulează'}</span>
                                 </button>
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || isSubmissionLocked}
-                                    title={finalizedAssignment ? 'Tema este finalizată' : undefined}
-                                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-1.5 text-sm font-bold text-ink shadow-lg shadow-accent/20 transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                                    aria-label={isSubmitting ? 'Se verifică...' : isSubmissionLocked ? 'Finalizată' : 'Trimite'}
+                                    title={finalizedAssignment ? 'Tema este finalizată' : isSubmitting ? 'Se verifică...' : 'Trimite soluția'}
+                                    className="flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-2 text-sm font-bold text-ink shadow-lg shadow-accent/20 transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 @[32rem]/editor:px-3"
                                 >
                                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isSubmissionLocked ? <LockKeyhole className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-                                    {isSubmitting ? 'Se verifică...' : isSubmissionLocked ? 'Finalizată' : 'Trimite'}
+                                    <span className="hidden @[32rem]/editor:inline">{isSubmitting ? 'Se verifică...' : isSubmissionLocked ? 'Finalizată' : 'Trimite'}</span>
                                 </button>
                             </div>
                         </div>
@@ -542,6 +592,7 @@ export default function RezolvareProblema() {
                                 theme="vs-dark"
                                 value={code}
                                 onChange={(value) => setCode(value)}
+                                onMount={handleEditorMount}
                                 options={{
                                     minimap: { enabled: false },
                                     fontSize: 15,
@@ -552,6 +603,18 @@ export default function RezolvareProblema() {
                                     padding: { top: 16 },
                                     smoothScrolling: true,
                                     cursorBlinking: "smooth",
+                                    // OFF stops automatic completion; Ctrl+Space can still
+                                    // request completions from available language providers.
+                                    quickSuggestions: autocompleteEnabled
+                                        ? { other: true, comments: false, strings: true }
+                                        : false,
+                                    suggestOnTriggerCharacters: autocompleteEnabled,
+                                    wordBasedSuggestions: autocompleteEnabled ? 'currentDocument' : 'off',
+                                    parameterHints: { enabled: autocompleteEnabled },
+                                    tabCompletion: autocompleteEnabled ? 'on' : 'off',
+                                    suggest: { showWords: autocompleteEnabled },
+                                    // Preserve Monaco's native inline support; no inline provider is added.
+                                    inlineSuggest: { enabled: autocompleteEnabled },
                                 }}
                             />
                         </div>

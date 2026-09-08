@@ -1,6 +1,6 @@
 import { AlertTriangle, Award, LogIn, RefreshCw, Search, Trophy, UserRound, Users } from 'lucide-react';
-import { useDeferredValue, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import TopHeader from '../components/MainArea/TopHeader';
 import ScoreLeaderboard from '../components/scores/ScoreLeaderboard';
@@ -8,23 +8,42 @@ import ScorePodium from '../components/scores/ScorePodium';
 import { supabase } from '../supabaseClient';
 import { formatXp } from '../utils/leaderboard';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default function Scoruri() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedPage = searchParams.get('page');
+  const parsedPage = Number(requestedPage);
+  const page = /^\d+$/.test(requestedPage || '') && parsedPage > 0 && Number.isSafeInteger(parsedPage * PAGE_SIZE) ? parsedPage : 1;
+  const search = searchParams.get('q') || '';
+  const normalizedSearch = search.trim();
+  const leaderboardRef = useRef(null);
+  const previousPageRef = useRef(page);
   const [topEntries, setTopEntries] = useState([]);
-  const [entries, setEntries] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [leaderboard, setLeaderboard] = useState({ entries: [], total: 0, queryKey: null, search: '', error: '' });
   const [globalTotal, setGlobalTotal] = useState(0);
   const [myStanding, setMyStanding] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [podiumLoading, setPodiumLoading] = useState(true);
   const [standingLoading, setStandingLoading] = useState(Boolean(user));
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
-  const deferredSearch = useDeferredValue(search.trim());
+  const queryKey = JSON.stringify([page, normalizedSearch, reloadKey]);
+  // A URL change must show the skeleton immediately, before the fetch effect runs.
+  const loading = leaderboard.queryKey !== queryKey;
+  const { entries } = leaderboard;
+  const total = leaderboard.search === normalizedSearch ? leaderboard.total : 0;
+  const error = loading ? '' : leaderboard.error;
+
+  useEffect(() => {
+    if (previousPageRef.current === page) return;
+    previousPageRef.current = page;
+    const section = leaderboardRef.current;
+    if (!section) return;
+    const { top } = section.getBoundingClientRect();
+    if (top < 80 || top >= window.innerHeight) {
+      section.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }
+  }, [page]);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,40 +76,60 @@ export default function Scoruri() {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
-    async function fetchLeaderboard() {
-      setLoading(true);
-      setError('');
-
+    function createQuery(head = false) {
       let query = supabase
         .from('profiles')
-        .select('id, username, avatar, total_xp', { count: 'exact' })
+        .select(head ? 'id' : 'id, username, avatar, total_xp', { count: 'exact', head })
         .not('username', 'is', null)
         .order('total_xp', { ascending: false })
         .order('username', { ascending: true });
 
-      if (deferredSearch) {
-        query = query.ilike('username', `%${deferredSearch}%`);
+      if (normalizedSearch) {
+        query = query.ilike('username', `%${normalizedSearch}%`);
       }
+      return query.abortSignal(controller.signal);
+    }
 
-      const start = (page - 1) * PAGE_SIZE;
-      const { data, count, error: fetchError } = await query.range(start, start + PAGE_SIZE - 1);
-      if (cancelled) return;
+    async function fetchLeaderboard() {
+      try {
+        const from = (page - 1) * PAGE_SIZE;
+        const result = await createQuery().range(from, from + PAGE_SIZE - 1);
+        if (cancelled) return;
 
-      if (fetchError) {
-        setError('Clasamentul nu a putut fi încărcat. Încearcă din nou.');
-        setEntries([]);
-        setTotal(0);
-      } else {
-        setEntries(data || []);
-        setTotal(count || 0);
+        // PostgREST can return 416 without a count for an out-of-range offset.
+        // Recover with a filtered HEAD count; never download the entire list.
+        const countResult = result.error?.code === 'PGRST103' ? await createQuery(true) : result;
+        if (cancelled) return;
+        if (countResult.error) throw countResult.error;
+
+        const totalCount = countResult.count || 0;
+        const lastPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+        if (page > lastPage) {
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.set('page', String(lastPage));
+            return next;
+          }, { replace: true });
+          return;
+        }
+        if (result.error) throw result.error;
+
+        setLeaderboard({ entries: result.data || [], total: totalCount, queryKey, search: normalizedSearch, error: '' });
+      } catch {
+        if (!cancelled) {
+          setLeaderboard({ entries: [], total: 0, queryKey, search: normalizedSearch, error: 'Clasamentul nu a putut fi încărcat. Încearcă din nou.' });
+        }
       }
-      setLoading(false);
     }
 
     fetchLeaderboard();
-    return () => { cancelled = true; };
-  }, [deferredSearch, page, reloadKey]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [normalizedSearch, page, queryKey, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,8 +172,23 @@ export default function Scoruri() {
   }, [reloadKey, user]);
 
   const handleSearchChange = (event) => {
-    setSearch(event.target.value);
-    setPage(1);
+    const value = event.target.value;
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set('q', value);
+      else next.delete('q');
+      next.set('page', '1');
+      return next;
+    }, { replace: true });
+  };
+
+  const handlePageChange = (nextPage) => {
+    if (loading || nextPage === page || nextPage < 1 || nextPage > Math.ceil(total / PAGE_SIZE)) return;
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('page', String(nextPage));
+      return next;
+    });
   };
 
   const handleRetry = () => setReloadKey((currentKey) => currentKey + 1);
@@ -149,7 +203,7 @@ export default function Scoruri() {
       <div className="mt-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h2 className="text-2xl font-black text-text-main">Podiumul PyLearn</h2><p className="mt-1 text-sm text-muted">Cei trei utilizatori cu cele mai multe XP.</p></div><button type="button" onClick={handleRetry} disabled={loading || podiumLoading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-ink px-4 py-2.5 text-sm font-bold text-text-main transition-colors hover:border-muted hover:bg-sidebar-hover disabled:cursor-not-allowed disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading || podiumLoading ? 'animate-spin' : ''}`} />Actualizează</button></div>
       <div className="mt-4"><ScorePodium entries={topEntries} loading={podiumLoading} /></div>
 
-      <section className="mt-8"><div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-2xl font-black text-text-main">Toți participanții</h2><p className="mt-1 text-sm text-muted">Caută un utilizator sau răsfoiește clasamentul.</p></div><label className="relative block w-full sm:w-80"><Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input type="search" value={search} onChange={handleSearchChange} placeholder="Caută după username..." className="w-full rounded-xl border border-border bg-ink py-3 pl-10 pr-4 text-sm text-text-main outline-none transition-colors placeholder:text-muted focus:border-accent" /></label></div>{error ? <div className="rounded-2xl border border-hard/25 bg-hard/10 p-5 text-hard"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-bold">Nu am putut încărca scorurile.</p><p className="mt-1 text-sm">{error}</p><button type="button" onClick={handleRetry} className="mt-4 rounded-lg border border-hard/30 px-3 py-2 text-sm font-bold transition-colors hover:bg-hard/10">Încearcă din nou</button></div></div></div> : <ScoreLeaderboard entries={entries} loading={loading} currentUserId={user?.id} currentPage={page} total={total} pageSize={PAGE_SIZE} searchActive={Boolean(deferredSearch)} onPageChange={setPage} />}</section>
+      <section ref={leaderboardRef} className="mt-8 scroll-mt-20"><div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-2xl font-black text-text-main">Toți participanții</h2><p className="mt-1 text-sm text-muted">Caută un utilizator sau răsfoiește clasamentul.</p></div><label className="relative block w-full sm:w-80"><Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input type="search" value={search} onChange={handleSearchChange} aria-label="Caută după username" placeholder="Caută după username..." className="w-full rounded-xl border border-border bg-ink py-3 pl-10 pr-4 text-sm text-text-main outline-none transition-colors placeholder:text-muted focus:border-accent" /></label></div>{error ? <div className="rounded-2xl border border-hard/25 bg-hard/10 p-5 text-hard"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-bold">Nu am putut încărca scorurile.</p><p className="mt-1 text-sm">{error}</p><button type="button" onClick={handleRetry} className="mt-4 rounded-lg border border-hard/30 px-3 py-2 text-sm font-bold transition-colors hover:bg-hard/10">Încearcă din nou</button></div></div></div> : <ScoreLeaderboard entries={entries} loading={loading} currentUserId={user?.id} currentPage={page} total={total} pageSize={PAGE_SIZE} searchActive={Boolean(normalizedSearch)} onPageChange={handlePageChange} />}</section>
     </div></main></div>
   );
 }
