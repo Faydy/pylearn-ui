@@ -4,12 +4,39 @@ import {
 	waitOnExecutionContext,
 	SELF,
 } from "cloudflare:test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import worker from "../src/index";
 
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
 describe("Code Runner API worker", () => {
+	it("successful /run contacts only Judge0 and never writes activity or progression", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch")
+			.mockResolvedValueOnce(Response.json({ token: "fixture-token" }))
+			.mockResolvedValueOnce(Response.json({
+				status: { id: 3, description: "Accepted" },
+				stdout: "1\n", time: "0.01", memory: 1000,
+			}));
+		try {
+			const request = new IncomingRequest("http://example.com/run", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ code: "print(1)", activity_date: "2099-01-01" }),
+			});
+			const ctx = createExecutionContext();
+			const response = await worker.fetch(request, env, ctx);
+			await waitOnExecutionContext(ctx);
+			expect(response.status).toBe(200);
+			await expect(response.json()).resolves.toMatchObject({ success: true, output: "1\n" });
+			expect(fetchSpy).toHaveBeenCalledTimes(2);
+			for (const [url] of fetchSpy.mock.calls) {
+				expect(new URL(String(url)).origin).toBe("https://ce.judge0.com");
+			}
+		} finally {
+			fetchSpy.mockRestore();
+		}
+	});
+
 	it("returns health metadata (unit style)", async () => {
 		const request = new IncomingRequest(
 			"http://example.com/health"

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { Link } from "react-router-dom";
 import { Loader2, GraduationCap, ChevronRight, BookOpen, Code2, Flame, Hash, ArrowRight } from "lucide-react";
+import SolvedProblemBadge from '../components/problems/SolvedProblemBadge';
+import useSolvedProblemIds from '../hooks/useSolvedProblemIds';
 import TopHeader from "../components/MainArea/TopHeader";
 
 export default function Probleme() {
@@ -9,6 +11,8 @@ export default function Probleme() {
     const [categorii, setCategorii] = useState([]);
     const [provocareZilnica, setProvocareZilnica] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const solvedStatus = useSolvedProblemIds(provocareZilnica ? [provocareZilnica.id] : []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -83,7 +87,7 @@ export default function Probleme() {
                         <p className="mt-2 text-base text-muted sm:text-lg">Selectează clasa pentru a accesa capitolele și problemele specifice.</p>
                     </div>
 
-                    {loading ? (
+                    {loading || solvedStatus.loading ? (
                         <div className="flex justify-center items-center py-20">
                             <Loader2 className="w-8 h-8 animate-spin text-accent" />
                         </div>
@@ -143,6 +147,7 @@ export default function Probleme() {
                                 </div>
                             </Link>
                             
+
                             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3 xl:gap-8">
                                 
                                 {/* --- CONCEPTE POPULARE (Folosind tabelul categories) --- */}
@@ -174,12 +179,14 @@ export default function Probleme() {
                                         <h3 className="text-xl font-bold text-text-main">Problemă Nouă</h3>
                                     </div>
                                     
+                                    {solvedStatus.error && <p role="alert" className="text-sm text-muted">{solvedStatus.error}</p>}
                                     {provocareZilnica ? (
                                         <div className="bg-ink border border-orange-500/30 p-6 rounded-3xl relative overflow-hidden group hover:border-orange-500/60 transition-colors flex-1 flex flex-col">
                                             <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-full -mr-10 -mt-10"></div>
                                             
                                             <div className="relative z-10 flex flex-col h-full">
-                                                <div className="flex justify-between items-center mb-3">
+                                                <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                    <SolvedProblemBadge isSolved={solvedStatus.solvedIds.has(String(provocareZilnica.id))} />
                                                     <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${getDifficultyStyle(provocareZilnica.difficulty)}`}>
                                                         {provocareZilnica.difficulty || 'Mixt'}
                                                     </span>

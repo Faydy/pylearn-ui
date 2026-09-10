@@ -2,22 +2,15 @@ import { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
 import { supabase } from '../../supabaseClient';
-import { addLocalDays, getLocalDateKey, getStartOfLocalWeek } from '../../utils/activity';
+import { addCalendarDays, formatCalendarDate, getStartOfCalendarWeek } from '../../utils/activity';
+import { useBucharestToday } from '../../hooks/useBucharestToday';
 
 export default function CalendarActivitate() {
   const { user, loading: authLoading } = useAuth();
   const [activityMap, setActivityMap] = useState({});
   const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState(() => new Date());
-  const startOfWeek = getStartOfLocalWeek(now);
-  const startOfWeekKey = getLocalDateKey(startOfWeek);
-  const todayKey = getLocalDateKey(now);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
-
-    return () => window.clearInterval(timer);
-  }, []);
+  const todayKey = useBucharestToday();
+  const startOfWeekKey = getStartOfCalendarWeek(todayKey);
 
   useEffect(() => {
     let isCurrent = true;
@@ -36,23 +29,14 @@ export default function CalendarActivitate() {
       setLoading(true);
 
       try {
-        const weekStart = new Date(`${startOfWeekKey}T00:00:00`);
-        const weekEnd = addLocalDays(weekStart, 7);
-        const { data, error } = await supabase
-          .from('submissions')
-          .select('submitted_at')
-          .eq('user_id', user.id)
-          .eq('status', 'accepted')
-          .gte('submitted_at', weekStart.toISOString())
-          .lt('submitted_at', weekEnd.toISOString());
+        const { data, error } = await supabase.rpc('get_own_activity_week');
 
         if (error) throw error;
         if (!isCurrent) return;
 
         const nextActivityMap = {};
-        (data || []).forEach((submission) => {
-          const activityDate = getLocalDateKey(submission.submitted_at);
-          if (activityDate) nextActivityMap[activityDate] = true;
+        (data || []).forEach(({ activity_date, problems_solved_count }) => {
+          if (activity_date && Number(problems_solved_count) > 0) nextActivityMap[activity_date] = true;
         });
 
         setActivityMap(nextActivityMap);
@@ -68,19 +52,18 @@ export default function CalendarActivitate() {
     return () => {
       isCurrent = false;
     };
-  }, [authLoading, startOfWeekKey, user?.id]);
+  }, [authLoading, todayKey, user?.id]);
 
   const zileSaptamana = ['Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm', 'Dum'];
 
   const activityData = Array.from({ length: 7 }, (_, index) => {
-    const dateObj = addLocalDays(startOfWeek, index);
-    const dateKey = getLocalDateKey(dateObj);
+    const dateKey = addCalendarDays(startOfWeekKey, index);
     const isToday = dateKey === todayKey;
     const isFuture = dateKey > todayKey;
 
     return {
       label: zileSaptamana[index],
-      date: dateObj.toLocaleDateString('ro-RO'),
+      date: formatCalendarDate(dateKey),
       isActive: !isFuture && Boolean(activityMap[dateKey]),
       isToday,
       isFuture,

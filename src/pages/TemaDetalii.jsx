@@ -138,7 +138,7 @@ export default function TemaDetalii() {
           .map((item) => ({ ...item, problem: problemsById.get(item.problem_id) }))
           .filter((item) => item.problem);
 
-        const { data: statusRows, error: statusesError } = problemIds.length === 0
+        const { data: statusRows, error: statusesError } = teacherView || problemIds.length === 0
           ? { data: [], error: null }
           : await supabase
             .from('user_problem_status')
@@ -242,7 +242,7 @@ export default function TemaDetalii() {
         </div>
       </section>
 
-      <section className="mt-6"><div className="mb-4 flex items-center justify-between"><div><h2 className="text-xl font-bold text-text-main">Problemele temei</h2><p className="mt-1 text-sm text-muted">{teacherView ? 'Problemele incluse în tema publicată elevilor.' : 'Rezolvă-le în ordine sau alege problema cu care vrei să continui.'}</p></div><span className="rounded-md bg-accent/10 px-3 py-1 text-sm font-bold text-accent">{problems.length}</span></div><AssignmentProblemList problems={problems} solvedIds={progress.solvedIds} /></section>
+      <section className="mt-6"><div className="mb-4 flex items-center justify-between"><div><h2 className="text-xl font-bold text-text-main">Problemele temei</h2><p className="mt-1 text-sm text-muted">{teacherView ? 'Problemele incluse în tema publicată elevilor.' : 'Rezolvă-le în ordine sau alege problema cu care vrei să continui.'}</p></div><span className="rounded-md bg-accent/10 px-3 py-1 text-sm font-bold text-accent">{problems.length}</span></div><AssignmentProblemList problems={problems} solvedIds={teacherView ? undefined : progress.solvedIds} /></section>
 
       {teacherView && <section className="mt-6 rounded-2xl border border-border bg-ink p-4 sm:p-6"><div className="mb-5 flex items-center gap-2"><Users className="h-5 w-5 text-accent" /><div><h2 className="text-xl font-bold text-text-main">Progres elevi</h2><p className="mt-1 text-sm text-muted">Se actualizează automat când un elev rezolvă o problemă din temă.</p></div></div>{studentProgressError ? <p className="rounded-xl border border-hard/20 bg-hard/10 p-4 text-sm text-hard">{studentProgressError}</p> : studentProgress.length === 0 ? <p className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted">Nu există elevi înscriși în această clasă.</p> : <div className="grid gap-3 lg:grid-cols-2">{studentProgress.map((student) => <StudentAssignmentProgressCard key={student.id} assignmentId={assignment.id} student={student} />)}</div>}</section>}
     </div></main></div>

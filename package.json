@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test:activity": "node --test tests/activity.test.mjs supabase/tests/activity.test.mjs",
+    "test:activity:browser": "vite --config tests/activity-browser.config.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/vite": "^4.3.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

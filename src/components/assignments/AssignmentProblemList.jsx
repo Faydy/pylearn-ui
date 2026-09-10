@@ -1,4 +1,5 @@
-import { CheckCircle2, Circle, Clock3, Star } from 'lucide-react';
+import SolvedProblemBadge from '../problems/SolvedProblemBadge';
+import { CheckCircle2, Circle, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getDifficultyClasses } from '../../utils/assignments';
 
@@ -11,7 +12,7 @@ export default function AssignmentProblemList({ problems, solvedIds, editable = 
     <div className="overflow-hidden rounded-2xl border border-border bg-ink">
       {problems.map((item, index) => {
         const problem = item.problem || item;
-        const isSolved = solvedIds?.has(problem.id);
+        const isSolved = !editable && (solvedIds?.has(problem.id) === true || solvedIds?.has(String(problem.id)) === true);
         const chapterName = problem.chapters?.title || problem.chapters?.section;
         const categoryName = problem.categories?.name;
 
@@ -25,9 +26,10 @@ export default function AssignmentProblemList({ problems, solvedIds, editable = 
               {editable ? (
                 <p className="truncate font-bold text-text-main">{problem.title}</p>
               ) : (
-                <Link to={`/rezolvare/${problem.id}`} className="truncate font-bold text-text-main transition-colors hover:text-accent">{problem.title}</Link>
+                <Link to={`/rezolvare/${problem.id}`} className="block break-words font-bold text-text-main transition-colors hover:text-accent">{problem.title}</Link>
               )}
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <SolvedProblemBadge isSolved={isSolved} />
                 <span className={`rounded-md border px-2 py-0.5 font-bold ${getDifficultyClasses(problem.difficulty)}`}>{problem.difficulty || 'Mixt'}</span>
                 <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-accent" />+{problem.xp_reward || 0} XP</span>
                 {(chapterName || categoryName) && <span>{[chapterName, categoryName].filter(Boolean).join(' · ')}</span>}
@@ -40,11 +42,7 @@ export default function AssignmentProblemList({ problems, solvedIds, editable = 
                 <button type="button" onClick={() => onMove(index, 1)} disabled={index === problems.length - 1} className="rounded-md border border-border px-2 py-1 text-xs font-bold text-muted hover:text-text-main disabled:cursor-not-allowed disabled:opacity-40">Jos</button>
                 <button type="button" onClick={() => onRemove(problem.id)} className="ml-1 rounded-md border border-hard/30 px-2 py-1 text-xs font-bold text-hard hover:bg-hard/10">Elimină</button>
               </div>
-            ) : (
-              <div className="hidden shrink-0 items-center gap-1.5 text-xs font-bold text-muted sm:flex">
-                {isSolved ? <><CheckCircle2 className="h-4 w-4 text-easy" />Rezolvată</> : <><Clock3 className="h-4 w-4" />Nerezolvată</>}
-              </div>
-            )}
+            ) : null}
           </div>
         );
       })}

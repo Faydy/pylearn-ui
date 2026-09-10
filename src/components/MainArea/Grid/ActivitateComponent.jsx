@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../AuthContext';
 import { supabase } from '../../../supabaseClient';
+import { useBucharestToday } from '../../../hooks/useBucharestToday';
 
 export default function ActivitateComponent() {
   const { user, loading: authLoading } = useAuth();
   const userId = user?.id;
+  const todayKey = useBucharestToday();
   const [activityData, setActivityData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,7 +42,7 @@ export default function ActivitateComponent() {
     return () => {
       isCurrent = false;
     };
-  }, [userId]);
+  }, [todayKey, userId]);
 
   if (authLoading || (user && isLoading)) {
     return (

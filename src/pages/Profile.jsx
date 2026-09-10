@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowRight, Loader2, LogOut, Mail, Save, ShoppingBag, User, Users } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import ProfileActivityCalendar from '../components/profile/ProfileActivityCalendar';
@@ -9,12 +9,15 @@ import SubmittedSolutions from '../components/profile/SubmittedSolutions';
 import { supabase } from '../supabaseClient';
 import { getAvatarUrl, normalizeProfileRole, PROFILE_ROLES } from '../utils/profile';
 import { normalizeUsername } from '../utils/username';
+import { useBucharestToday } from '../hooks/useBucharestToday';
 
 const SUBMISSIONS_PREVIEW_SIZE = 5;
 const PUBLIC_SUBMISSIONS_PAGE_SIZE = 12;
 
 export default function Profile() {
   const { user, refreshAuth } = useAuth();
+  const todayKey = useBucharestToday();
+  const previousTodayKey = useRef(todayKey);
   const { userId: routeUserId } = useParams();
   const ownProfile = !routeUserId || routeUserId === user?.id;
   const viewedUserId = ownProfile ? user?.id : routeUserId;
@@ -171,6 +174,20 @@ export default function Profile() {
     loadProfile();
     return () => { cancelled = true; };
   }, [ownProfile, user, viewedUserId]);
+
+  useEffect(() => {
+    // The normal profile load handles navigation. At midnight refresh only the
+    // public summary, preserving any unsaved username/role edits.
+    if (previousTodayKey.current === todayKey) return undefined;
+    previousTodayKey.current = todayKey;
+    if (!viewedUserId) return undefined;
+    let cancelled = false;
+    supabase.rpc('get_public_profile', { p_profile_id: viewedUserId })
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data?.[0]) setPublicProfile(data[0]);
+      });
+    return () => { cancelled = true; };
+  }, [todayKey, viewedUserId]);
 
   useEffect(() => {
     if (!user || !viewedUserId) return undefined;

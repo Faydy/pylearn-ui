@@ -1,75 +1,9 @@
 import { Circle, ChevronRight, Loader2 } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
-import { supabase } from '../../supabaseClient';
-import { useState, useEffect } from 'react';
+import useProblemRecommendations from '../../hooks/useProblemRecommendations';
 
 export default function ListaProbleme() {
-  const [problems, setProblems] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isGuest, setIsGuest] = useState(false);
-
-  useEffect(() => {
-    const fetchRecomandari = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        
-        const userId = session?.user?.id;
-        let userGradeId;
-        let solvedIds = [];
-
-        if (userId) {
-          // 1. Clasa utilizatorului
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('grade_id')
-            .eq('id', userId)
-            .single();
-          userGradeId = profileData?.grade_id;
-
-          // 2. Problemele deja rezolvate
-          const { data: solvedData } = await supabase
-            .from('submissions')
-            .select('problem_id')
-            .eq('user_id', userId);
-          solvedIds = solvedData?.map(s => s.problem_id) || [];
-        } else {
-          setIsGuest(true);
-        }
-
-        // 3. Aducem 5 probleme nerezolvate, extrăgând și numele secțiunii din capitol
-        let query = supabase
-          .from('problems')
-          .select(`
-            id, 
-            title, 
-            difficulty, 
-            xp_reward,
-            chapters!inner(section)
-          `)
-          .limit(5);
-
-        if (userGradeId) {
-          query = query.eq('chapters.grade_id', userGradeId);
-        }
-
-        if (solvedIds.length > 0) {
-          query = query.not('id', 'in', `(${solvedIds.join(',')})`);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-        
-        setProblems(data || []);
-      } catch (error) {
-        console.error("Eroare la aducerea listei de probleme:", error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRecomandari();
-  }, []);
+  const { problems, loading: isLoading, error, isGuest } = useProblemRecommendations(5);
 
   // Funcție pentru culorile dificultății (adaptată pentru baza ta de date)
   const getDifficultyStyle = (diff) => {
@@ -111,7 +45,7 @@ export default function ListaProbleme() {
 
       {/* Containerul Listei */}
       <div className="bg-ink border border-border rounded-2xl overflow-hidden flex flex-col">
-        {problems.length === 0 ? (
+        {error ? <p role="alert" className="p-4 text-sm text-muted">{error}</p> : problems.length === 0 ? (
           <div className="p-8 text-center text-muted">
             {isGuest ? 'Nu există probleme disponibile momentan.' : 'Nu mai ai probleme nerezolvate la acest nivel. Ești un expert!'}
           </div>
@@ -126,13 +60,13 @@ export default function ListaProbleme() {
             >
               
               {/* Partea Stângă: Status, Titlu, Categorie */}
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="flex-shrink-0">
-                  <Circle className="w-5 h-5 text-muted group-hover:text-accent transition-colors" title="Nerezolvat" />
+                  <Circle className="w-5 h-5 text-muted group-hover:text-accent transition-colors" aria-hidden="true" />
                 </div>
                 
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm md:text-base text-text-main transition-colors group-hover:text-accent">
+                <div className="flex min-w-0 flex-col">
+                  <span className="break-words font-bold text-sm md:text-base text-text-main transition-colors group-hover:text-accent">
                     {problem.title}
                   </span>
                   <span className="text-xs text-muted font-medium mt-0.5">
@@ -142,7 +76,7 @@ export default function ListaProbleme() {
               </div>
 
               {/* Partea Dreaptă: Dificultate, Puncte, Acțiune */}
-              <div className="flex items-center gap-6">
+              <div className="flex shrink-0 items-center gap-3 sm:gap-6">
                 
                 {/* Dificultate (Ascunsă pe ecrane foarte mici pentru a nu aglomera) */}
                 <span className={`hidden sm:inline-block px-2.5 py-1 rounded-md text-xs font-bold border capitalize ${getDifficultyStyle(problem.difficulty)}`}>

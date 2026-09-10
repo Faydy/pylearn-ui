@@ -1,3 +1,5 @@
+import SolvedProblemBadge from '../problems/SolvedProblemBadge';
+import useSolvedProblemIds from '../../hooks/useSolvedProblemIds';
 import { ChevronRight, Code2, Loader2, Moon, Search, Sun } from 'lucide-react';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -53,6 +55,7 @@ export default function TopHeader({title = "Dashboard"}) {
     const [previewProblems, setPreviewProblems] = useState([]);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewError, setPreviewError] = useState('');
+    const solvedStatus = useSolvedProblemIds(isSearchPreviewOpen && !previewLoading ? previewProblems.map((problem) => problem.id) : []);
     const location = useLocation();
     const navigate = useNavigate();
     const searchContainerRef = useRef(null);
@@ -170,10 +173,10 @@ export default function TopHeader({title = "Dashboard"}) {
           />
           {isSearchPreviewOpen && searchQuery.trim() && (
             <div id="problem-search-preview" className="absolute left-1/2 top-full z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-background shadow-2xl" role="listbox" aria-label="Rezultate rapide">
-              {previewLoading ? (
+              {previewLoading || solvedStatus.loading ? (
                 <div className="flex items-center justify-center gap-2 p-4 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin text-accent" />Se caută probleme...</div>
-              ) : previewError ? (
-                <p className="p-3 text-sm text-hard">{previewError}</p>
+              ) : previewError || solvedStatus.error ? (
+                <p className="p-3 text-sm text-hard">{previewError || solvedStatus.error}</p>
               ) : previewProblems.length === 0 ? (
                 <p className="p-3 text-sm text-muted">Nu am găsit probleme cu acest titlu.</p>
               ) : (
@@ -181,7 +184,7 @@ export default function TopHeader({title = "Dashboard"}) {
                   {previewProblems.map((problem) => (
                     <button key={problem.id} type="button" role="option" onClick={() => handleSelectProblem(problem.id)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-hover">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent"><Code2 className="h-4 w-4" /></span>
-                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-text-main">{problem.title}</span><span className="mt-1 flex items-center gap-2"><span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase ${getDifficultyClass(problem.difficulty)}`}>{problem.difficulty || 'Mixt'}</span><span className="text-xs font-bold text-accent">+{problem.xp_reward || 0} XP</span></span></span>
+                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-text-main">{problem.title}</span><span className="mt-1 flex flex-wrap items-center gap-2"><SolvedProblemBadge isSolved={solvedStatus.solvedIds.has(String(problem.id))} /><span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase ${getDifficultyClass(problem.difficulty)}`}>{problem.difficulty || 'Mixt'}</span><span className="text-xs font-bold text-accent">+{problem.xp_reward || 0} XP</span></span></span>
                       <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
                     </button>
                   ))}

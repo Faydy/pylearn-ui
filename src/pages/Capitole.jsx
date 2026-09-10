@@ -1,73 +1,33 @@
-import { useState, useEffect } from "react";
+import SolvedProblemBadge from '../components/problems/SolvedProblemBadge';
+import { isProblemSolved } from '../utils/solvedProblems';
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "../supabaseClient";
-import { Loader2, BookOpen, Code2, Star, ChevronRight, ArrowLeft } from "lucide-react";
+import { BookOpen, Code2, Star, ChevronRight, ArrowLeft } from "lucide-react";
 import TopHeader from "../components/MainArea/TopHeader";
+import ProblemFilters from '../components/problems/ProblemFilters';
+import ProblemResults from '../components/problems/ProblemResults';
+import useProblemBrowser from '../hooks/useProblemBrowser';
+import { sectionValue } from '../utils/problemFilters';
 
 export default function Capitole() {
     const { gradeId } = useParams();
-    const [clasa, setClasa] = useState(null);
-    const [sectiuni, setSectiuni] = useState([]); // Acum ținem datele grupate pe secțiuni
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchDate = async () => {
-            try {
-                // 1. Luăm detaliile clasei
-                const { data: gradeData, error: gradeError } = await supabase
-                    .from('grades')
-                    .select('name')
-                    .eq('id', gradeId)
-                    .single();
-                
-                if (gradeError) throw gradeError;
-                setClasa(gradeData);
-
-                // 2. Luăm capitolele (acum includem și coloana "section")
-                const { data: chaptersData, error: chaptersError } = await supabase
-                    .from('chapters')
-                    .select(`
-                        id, 
-                        title, 
-                        section,
-                        order_index,
-                        problems ( id, title, difficulty, xp_reward )
-                    `)
-                    .eq('grade_id', gradeId)
-                    .order('order_index', { ascending: true });
-                
-                if (chaptersError) throw chaptersError;
-                
-                // 3. LOGICA DE GRUPARE: Transformăm lista într-o structură grupată pe "section"
-                const grupate = [];
-                
-                chaptersData.forEach(chapter => {
-                    // Sortăm problemele din capitolul curent
-                    const sortedProblems = chapter.problems ? chapter.problems.sort((a, b) => a.id - b.id) : [];
-                    const chapterComplet = { ...chapter, problems: sortedProblems };
-                    
-                    // Găsim secțiunea (sau o creăm dacă e prima dată când dăm de ea)
-                    const numeSectiune = chapter.section || 'Altele';
-                    let grup = grupate.find(g => g.sectiune === numeSectiune);
-                    
-                    if (!grup) {
-                        grup = { sectiune: numeSectiune, capitole: [] };
-                        grupate.push(grup);
-                    }
-                    
-                    grup.capitole.push(chapterComplet);
-                });
-
-                setSectiuni(grupate);
-            } catch (error) {
-                console.error("Eroare la extragerea datelor:", error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDate();
-    }, [gradeId]);
+    const browser = useProblemBrowser({ gradeId, grouped: true });
+    const clasa = browser.metadata?.grades.find((grade) => String(grade.id) === gradeId);
+    const problemsByChapter = new Map();
+    for (const problem of browser.problems) {
+        const key = String(problem.chapter_id);
+        if (!problemsByChapter.has(key)) problemsByChapter.set(key, []);
+        problemsByChapter.get(key).push(problem);
+    }
+    const sectiuni = [];
+    for (const chapter of browser.chapters) {
+        const problems = problemsByChapter.get(String(chapter.id)) || [];
+        // Empty chapters stay visible in the original unfiltered curriculum.
+        if (!problems.length && (browser.activeCount > 0 || browser.total > 30)) continue;
+        const name = sectionValue(chapter);
+        let group = sectiuni.find((item) => item.sectiune === name);
+        if (!group) { group = { sectiune: name, capitole: [] }; sectiuni.push(group); }
+        group.capitole.push({ ...chapter, problems });
+    }
 
     const getDifficultyStyle = (diff) => {
         switch (diff?.toLowerCase()) {
@@ -77,17 +37,6 @@ export default function Capitole() {
             default: return 'text-muted bg-background border-border';
         }
     };
-
-    if (loading) {
-        return (
-            <div className="flex flex-col h-full">
-                <TopHeader title="Se încarcă..." />
-                <div className="flex justify-center items-center py-20 flex-1">
-                    <Loader2 className="w-8 h-8 animate-spin text-accent" />
-                </div>
-            </div>
-        );
-    }
 
     return (
         // Containerul principal nu are padding, ca să lase TopHeader-ul să se întindă la maxim
@@ -108,6 +57,8 @@ export default function Capitole() {
                     </h2>
                 </div>
 
+                <ProblemFilters browser={browser} placeholder="Filtrează problemele din această clasă..." grouped />
+                <ProblemResults browser={browser}>
                 {/* Lista de Secțiuni (Cutii Mari) */}
                 <div className="flex flex-col gap-8">
                     {sectiuni.length === 0 ? (
@@ -141,7 +92,7 @@ export default function Capitole() {
                                         <div key={capitol.id} className="bg-background border border-border rounded-xl p-4">
                                             
                                             <h4 className="text-lg font-bold text-text-main mb-3 border-b border-border pb-2">
-                                                {capitol.title}
+                                                <Link to={`/probleme/capitol/${capitol.id}`} className="hover:text-accent hover:underline">{capitol.title}</Link>
                                             </h4>
 
                                             {/* Problemele */}
@@ -151,13 +102,14 @@ export default function Capitole() {
                                                         <Link 
                                                             to={`/rezolvare/${problema.id}`} 
                                                             key={problema.id}
-                                                        className="group flex flex-col gap-3 rounded-lg border border-transparent p-3 transition-colors hover:border-border hover:bg-sidebar-hover sm:flex-row sm:items-center sm:justify-between"
+                                                        className={`group flex min-w-0 flex-col gap-3 rounded-lg border ${isProblemSolved(problema) ? 'border-easy/40' : 'border-transparent'} p-3 transition-colors hover:border-border hover:bg-sidebar-hover sm:flex-row sm:items-center sm:justify-between`}
                                                         >
-                                                            <div className="flex min-w-0 items-center gap-3">
+                                                            <div className="flex min-w-0 flex-wrap items-center gap-3">
                                                                 <Code2 className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
-                                                                <span className="min-w-0 text-sm font-medium text-text-main transition-colors group-hover:text-accent">
+                                                                <span className="min-w-0 break-words text-sm font-medium text-text-main transition-colors group-hover:text-accent">
                                                                     {problema.title}
                                                                 </span>
+                                                                <SolvedProblemBadge isSolved={isProblemSolved(problema)} />
                                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getDifficultyStyle(problema.difficulty)}`}>
                                                                     {problema.difficulty}
                                                                 </span>
@@ -183,6 +135,7 @@ export default function Capitole() {
                         ))
                     )}
                 </div>
+                </ProblemResults>
             </div>
         </div>
     );

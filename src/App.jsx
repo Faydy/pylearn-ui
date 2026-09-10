@@ -84,6 +84,7 @@ export default function App() {
 
             <Route path="/probleme" element={<Probleme />} />
             <Route path="/probleme/clasa/:gradeId" element={<Capitole />} />
+            <Route path="/probleme/capitol/:chapterId" element={<ProblemeSectiune />} />
             <Route path="/probleme/toate" element={<ToateProblemele />} />
             <Route path="/probleme/clasa/:gradeId/sectiune/:sectionName" element={<ProblemeSectiune />} />
 

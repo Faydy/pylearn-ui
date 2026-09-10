@@ -1,83 +1,11 @@
 import { Code, Loader2 } from "lucide-react";
-import { supabase } from "../../../supabaseClient";
-import { useState, useEffect } from "react";
+import useProblemRecommendations from '../../../hooks/useProblemRecommendations';
 import { Link } from "react-router-dom"; 
 
 export default function ProblemaComponent(){
-  const [sugestie, setSugestie] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  // Adăugăm un state pentru a ști dacă utilizatorul este logat sau nu
-  const [isLoggedIn, setIsLoggedIn] = useState(true); 
-
-  useEffect(() => {
-    const fetchSugestie = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        
-        const userId = session?.user?.id;
-        
-        // Dacă nu avem user, setăm isLoggedIn pe false și ne oprim
-        if (!userId) {
-          setIsLoggedIn(false);
-          return;
-        }
-
-        // Dacă avem user, continuăm fluxul normal
-        setIsLoggedIn(true);
-
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('grade_id')
-          .eq('id', userId)
-          .single();
-
-        if (profileError) throw profileError;
-        const userGradeId = profileData?.grade_id;
-
-        const { data: solvedData, error: solvedError } = await supabase
-          .from('submissions')
-          .select('problem_id')
-          .eq('user_id', userId);
-          
-        if (solvedError) throw solvedError;
-        const solvedIds = solvedData.map(s => s.problem_id);
-
-        let query = supabase
-          .from('problems')
-          .select(`
-            id, 
-            title, 
-            description, 
-            difficulty, 
-            xp_reward,
-            chapters!inner(grade_id)
-          `)
-          .limit(1);
-
-        if (userGradeId) {
-          query = query.eq('chapters.grade_id', userGradeId);
-        }
-
-        if (solvedIds.length > 0) {
-          query = query.not('id', 'in', `(${solvedIds.join(',')})`);
-        }
-
-        const { data: recommendedData, error: recError } = await query.single();
-        
-        if (recError && recError.code !== 'PGRST116') throw recError;
-
-        setSugestie(recommendedData);
-
-      } catch (error) {
-        console.error("Eroare la aducerea sugestiei:", error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSugestie();
-  }, []);
+  const { problems, loading: isLoading, error, isGuest } = useProblemRecommendations(1);
+  const sugestie = problems[0];
+  const isLoggedIn = !isGuest;
 
   const getDifficultyStyle = (diff) => {
     switch (diff?.toLowerCase()) {
@@ -111,6 +39,8 @@ export default function ProblemaComponent(){
       </div>
     );
   }
+
+  if (error) return <p role="alert" className="rounded-2xl border border-border bg-ink p-6 text-sm text-muted">{error}</p>;
 
   // 3. Dacă a rezolvat TOT (și este logat, conform verificărilor de sus)
   if (!sugestie) {
