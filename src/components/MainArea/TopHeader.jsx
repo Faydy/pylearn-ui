@@ -148,13 +148,13 @@ export default function TopHeader({title = "Dashboard"}) {
     };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-center border-b border-border bg-background px-4 sm:justify-between sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-4 sm:gap-6 sm:px-6 lg:px-8">
       
-      <div className="max-w-[calc(100%-7rem)] sm:max-w-none">
-        <h2 className="truncate text-center text-lg font-bold text-text-main sm:text-left">{title}</h2>
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-lg font-bold text-text-main" title={title}>{title}</h2>
       </div>
 
-      <div className="absolute right-4 flex items-center gap-3 sm:static sm:gap-6">
+      <div className="flex shrink-0 items-center gap-3 sm:gap-6">
         
         <form ref={searchContainerRef} onSubmit={handleSearchSubmit} className="relative hidden md:block">
           <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 transform -translate-y-1/2" />

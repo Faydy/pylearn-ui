@@ -9,27 +9,13 @@ import {
 } from 'lucide-react';
 import TopHeader from "../components/MainArea/TopHeader";
 import SubmittedSolutions from '../components/profile/SubmittedSolutions';
-import { getApiEndpoint } from '../utils/api';
+import { getApiEndpoint, getApiErrorMessage, parseApiJson, runCode } from '../utils/api';
+import { pythonEditorOptions } from '../utils/pythonEditorOptions';
 import { registerPythonCompletionProvider } from '../utils/pythonCompletions';
 import { useAuth } from '../AuthContext';
 
 const PROBLEM_SUBMISSIONS_PAGE_SIZE = 20;
 const AUTOCOMPLETE_STORAGE_KEY = 'pylearn-editor-autocomplete';
-
-async function parseApiJson(response) {
-    try {
-        return await response.json();
-    } catch {
-        return null;
-    }
-}
-
-function getApiErrorMessage(response, data, fallback) {
-    const serverMessage = data?.error || data?.output;
-    if (serverMessage) return serverMessage;
-    if (!response.ok) return `${fallback} HTTP ${response.status}.`;
-    return fallback;
-}
 
 export default function RezolvareProblema() {
     const { id } = useParams();
@@ -229,41 +215,12 @@ export default function RezolvareProblema() {
     setHasError(false);
 
     try {
-        const runEndpoint = getApiEndpoint('/run');
         const sampleInput =
             problema.test_cases?.[0]?.input?.replace(/\\n/g, '\n') || '';
-
-        const response = await fetch(
-            runEndpoint,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    code,
-                    input: sampleInput,
-                }),
-            }
-        );
-
-        const data = await parseApiJson(response);
-
-        if (response.ok && data?.success) {
-            setOutput(data.output || '(fără output)');
-            setHasError(false);
-        } else {
-            setOutput(
-                getApiErrorMessage(
-                    response,
-                    data,
-                    'Eroare necunoscută la execuție.',
-                )
-            );
-
-            setHasError(true);
-            setActiveTab('erori');
-        }
+        const result = await runCode(code, sampleInput);
+        setOutput(result.output || '(fără output)');
+        setHasError(!result.success);
+        if (!result.success) setActiveTab('erori');
 
     } catch (err) {
         setOutput(
@@ -594,15 +551,7 @@ export default function RezolvareProblema() {
                                 onChange={(value) => setCode(value)}
                                 onMount={handleEditorMount}
                                 options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 15,
-                                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
-                                    fontLigatures: true,
-                                    scrollBeyondLastLine: false,
-                                    roundedSelection: false,
-                                    padding: { top: 16 },
-                                    smoothScrolling: true,
-                                    cursorBlinking: "smooth",
+                                    ...pythonEditorOptions,
                                     // OFF stops automatic completion; Ctrl+Space can still
                                     // request completions from available language providers.
                                     quickSuggestions: autocompleteEnabled

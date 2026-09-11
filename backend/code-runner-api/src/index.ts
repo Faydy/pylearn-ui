@@ -1080,7 +1080,7 @@ async function waitForResult(
 		const result =
 			await fetchJudge0Json<JudgeResult>(
 				`${JUDGE0_URL}/submissions/${token}` +
-				"?base64_encoded=false" +
+				"?base64_encoded=true" +
 				"&fields=stdout,stderr,compile_output,message,status,time,memory",
 				undefined,
 				JUDGE0_RESULT_TIMEOUT_MS,
@@ -1095,13 +1095,32 @@ async function waitForResult(
 			result.status &&
 			result.status.id >= 3
 		) {
-			return result;
+			return {
+				...result,
+				stdout: decodeJudge0Output(result.stdout),
+				stderr: decodeJudge0Output(result.stderr),
+				compile_output: decodeJudge0Output(result.compile_output),
+				message: decodeJudge0Output(result.message),
+			};
 		}
 
 		await sleep(250);
 	}
 
 	return null;
+}
+
+// Judge0 may reject plain JSON output when execution produces non-ASCII/binary
+// bytes. Request Base64 and decode the bytes as UTF-8, rather than treating each
+// byte as a character (which would corrupt Romanian diacritics).
+function decodeJudge0Output(value: string | null | undefined): string | null {
+	if (value == null) return null;
+	try {
+		const bytes = Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+		return new TextDecoder().decode(bytes);
+	} catch {
+		throw new HttpError(502, "Serviciul de execuție a returnat un rezultat codificat invalid.");
+	}
 }
 
 // ======================================================

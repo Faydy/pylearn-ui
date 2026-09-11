@@ -3,10 +3,18 @@ import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import RunnableCodeBlock from './RunnableCodeBlock';
+import { getRunnableCode } from '../../utils/runnableMarkdown';
+
+function TheoryCodeBlock({ node, children }) {
+  const runnable = getRunnableCode(node);
+  if (runnable) return <RunnableCodeBlock key={runnable.initialCode} {...runnable} />;
+  return <pre className="mt-6 overflow-x-auto rounded-xl border border-border bg-background p-4 text-sm leading-6 text-text-main">{children}</pre>;
+}
 
 export default function TheoryContent({ content }) {
   return (
-    <article className="text-[1rem] leading-8 text-text-main sm:text-[1.05rem]">
+    <article className="min-w-0 max-w-full text-[1rem] leading-8 text-text-main sm:text-[1.05rem]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -18,7 +26,7 @@ export default function TheoryContent({ content }) {
           ul: ({ children }) => <ul className="mt-5 list-disc space-y-2 pl-6 text-muted marker:text-accent">{children}</ul>,
           ol: ({ children }) => <ol className="mt-5 list-decimal space-y-2 pl-6 text-muted marker:font-bold marker:text-accent">{children}</ol>,
           blockquote: ({ children }) => <blockquote className="mt-6 rounded-r-xl border-l-4 border-accent bg-accent/10 px-5 py-4 text-text-main">{children}</blockquote>,
-          pre: ({ children }) => <pre className="mt-6 overflow-x-auto rounded-xl border border-border bg-background p-4 text-sm leading-6 text-text-main">{children}</pre>,
+          pre: TheoryCodeBlock,
           code: ({ className, children }) => <code className={className || 'rounded bg-background px-1.5 py-0.5 font-mono text-[0.9em] text-accent'}>{children}</code>,
           hr: () => <hr className="my-8 border-border" />,
           a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="font-bold text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:text-text-main">{children}</a>,
