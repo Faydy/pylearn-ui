@@ -10,7 +10,7 @@ export default function AssignmentForm({ classrooms, assignment, initialProblemI
   const [description, setDescription] = useState(assignment?.description || '');
   const [classroomId, setClassroomId] = useState(assignment?.classroom_id?.toString() || classrooms[0]?.id?.toString() || '');
   const [dueAt, setDueAt] = useState(toDateTimeLocalValue(assignment?.due_at));
-  const [published, setPublished] = useState(Boolean(assignment?.published));
+  const [published, setPublished] = useState(assignment?.published ?? true);
   const [problems, setProblems] = useState([]);
   const [selectedProblems, setSelectedProblems] = useState([]);
   const [search, setSearch] = useState('');

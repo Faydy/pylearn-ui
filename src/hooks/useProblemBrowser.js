@@ -62,6 +62,7 @@ export default function useProblemBrowser({ gradeId, section, chapterId, grouped
 
   const update = (changes, { replace = false } = {}) => {
     const next = changeProblemFilters(filters, { q: search, ...changes }, scope, metadata, Boolean(user));
+    setDraft({});
     setParams(writeProblemFilters(params, next), { replace });
   };
 
@@ -69,6 +70,8 @@ export default function useProblemBrowser({ gradeId, section, chapterId, grouped
     if (!metadata || draft.key !== location.key || search.trim() === filters.q) return undefined;
     const timeout = setTimeout(() => {
       const next = changeProblemFilters(filters, { q: search }, scope, metadata, Boolean(user));
+      // A committed draft must not be revived when Back returns to its old key.
+      setDraft({});
       setParams(writeProblemFilters(params, next));
     }, 300);
     return () => clearTimeout(timeout);
