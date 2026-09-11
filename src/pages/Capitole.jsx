@@ -1,142 +1,65 @@
-import SolvedProblemBadge from '../components/problems/SolvedProblemBadge';
-import { isProblemSolved } from '../utils/solvedProblems';
-import { useParams, Link } from "react-router-dom";
-import { BookOpen, Code2, Star, ChevronRight, ArrowLeft } from "lucide-react";
-import TopHeader from "../components/MainArea/TopHeader";
-import ProblemFilters from '../components/problems/ProblemFilters';
-import ProblemResults from '../components/problems/ProblemResults';
-import useProblemBrowser from '../hooks/useProblemBrowser';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Loader2 } from 'lucide-react';
+import TopHeader from '../components/MainArea/TopHeader';
+import CurriculumBreadcrumbs from '../components/problems/CurriculumBreadcrumbs';
+import CurriculumProgress from '../components/problems/CurriculumProgress';
+import useProblemCurriculum from '../hooks/useProblemCurriculum';
 import { sectionValue } from '../utils/problemFilters';
 
 export default function Capitole() {
-    const { gradeId } = useParams();
-    const browser = useProblemBrowser({ gradeId, grouped: true });
-    const clasa = browser.metadata?.grades.find((grade) => String(grade.id) === gradeId);
-    const problemsByChapter = new Map();
-    for (const problem of browser.problems) {
-        const key = String(problem.chapter_id);
-        if (!problemsByChapter.has(key)) problemsByChapter.set(key, []);
-        problemsByChapter.get(key).push(problem);
-    }
-    const sectiuni = [];
-    for (const chapter of browser.chapters) {
-        const problems = problemsByChapter.get(String(chapter.id)) || [];
-        // Empty chapters stay visible in the original unfiltered curriculum.
-        if (!problems.length && (browser.activeCount > 0 || browser.total > 30)) continue;
-        const name = sectionValue(chapter);
-        let group = sectiuni.find((item) => item.sectiune === name);
-        if (!group) { group = { sectiune: name, capitole: [] }; sectiuni.push(group); }
-        group.capitole.push({ ...chapter, problems });
-    }
+  const { gradeId, sectionName } = useParams();
+  const curriculum = useProblemCurriculum({ gradeId });
+  const { grade, personal, loading, error } = curriculum;
+  const chapters = curriculum.chapters.filter((chapter) => !sectionName || sectionValue(chapter) === sectionName);
+  const sections = new Map();
+  for (const chapter of chapters) {
+    const section = sectionValue(chapter);
+    if (!sections.has(section)) sections.set(section, []);
+    sections.get(section).push(chapter);
+  }
+  const total = chapters.reduce((sum, chapter) => sum + Number(chapter.total_problem_count), 0);
+  const solved = chapters.reduce((sum, chapter) => sum + Number(chapter.solved_problem_count || 0), 0);
+  const title = sectionName || grade?.name || 'Programa clasei';
+  const archiveParams = new URLSearchParams({ grade: gradeId });
+  if (sectionName) archiveParams.set('section', sectionName);
 
-    const getDifficultyStyle = (diff) => {
-        switch (diff?.toLowerCase()) {
-            case 'usor': return 'text-easy bg-easy/10 border-easy/20';
-            case 'mediu': return 'text-medium bg-medium/10 border-medium/20';
-            case 'greu': return 'text-hard bg-hard/10 border-hard/20';
-            default: return 'text-muted bg-background border-border';
-        }
-    };
-
-    return (
-        // Containerul principal nu are padding, ca să lase TopHeader-ul să se întindă la maxim
-        <div className="flex flex-col h-full">
-            
-            <TopHeader title={clasa?.name || "Capitole"} />
-            
-            {/* Tot conținutul de sub header este învelit în acest div care are padding-ul (p-6) */}
-            <div className="flex-1 overflow-y-auto p-4 pb-10 sm:p-6">
-                <div className="mb-8">
-                    <Link to="/probleme" className="inline-flex items-center gap-2 text-muted hover:text-text-main transition-colors mb-4 text-sm font-medium">
-                        <ArrowLeft className="w-4 h-4" />
-                        Înapoi la clase
-                    </Link>
-                    <h2 className="flex flex-wrap items-center gap-3 text-2xl font-bold text-text-main sm:text-3xl">
-                        <BookOpen className="w-8 h-8 text-accent" />
-                        Curiculă {clasa?.name}
-                    </h2>
-                </div>
-
-                <ProblemFilters browser={browser} placeholder="Filtrează problemele din această clasă..." grouped />
-                <ProblemResults browser={browser}>
-                {/* Lista de Secțiuni (Cutii Mari) */}
-                <div className="flex flex-col gap-8">
-                    {sectiuni.length === 0 ? (
-                        <div className="text-center py-10 bg-ink border border-border rounded-2xl">
-                            <p className="text-muted">Nu există capitole adăugate încă.</p>
-                        </div>
-                    ) : (
-                        sectiuni.map((grup, grupIndex) => (
-                            <div key={grupIndex} className="bg-ink border border-border rounded-2xl overflow-hidden shadow-lg">
-                                
-                                {/* Header-ul Albastru - Acum este un link interactiv! */}
-                            <Link 
-                                to={`/probleme/clasa/${gradeId}/sectiune/${encodeURIComponent(grup.sectiune)}`}
-                                className="group flex flex-col gap-2 border-b border-accent/30 bg-accent/20 px-4 py-4 transition-colors hover:bg-accent/30 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-xl font-bold text-accent group-hover:text-text-main transition-colors">
-                                        {grup.sectiune}
-                                    </h3>
-                                    {/* O mică săgeată care apare la hover ca să indice că poți da click */}
-                                    <ChevronRight className="w-5 h-5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                                <span className="text-accent/80 text-sm font-bold">
-                                    {grup.capitole.length} capitole
-                                </span>
-                            </Link>
-
-                                {/* Lista de Capitole */}
-                                <div className="p-4 flex flex-col gap-4">
-                                    {grup.capitole.map((capitol) => (
-                                        <div key={capitol.id} className="bg-background border border-border rounded-xl p-4">
-                                            
-                                            <h4 className="text-lg font-bold text-text-main mb-3 border-b border-border pb-2">
-                                                <Link to={`/probleme/capitol/${capitol.id}`} className="hover:text-accent hover:underline">{capitol.title}</Link>
-                                            </h4>
-
-                                            {/* Problemele */}
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {capitol.problems && capitol.problems.length > 0 ? (
-                                                    capitol.problems.map((problema) => (
-                                                        <Link 
-                                                            to={`/rezolvare/${problema.id}`} 
-                                                            key={problema.id}
-                                                        className={`group flex min-w-0 flex-col gap-3 rounded-lg border ${isProblemSolved(problema) ? 'border-easy/40' : 'border-transparent'} p-3 transition-colors hover:border-border hover:bg-sidebar-hover sm:flex-row sm:items-center sm:justify-between`}
-                                                        >
-                                                            <div className="flex min-w-0 flex-wrap items-center gap-3">
-                                                                <Code2 className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
-                                                                <span className="min-w-0 break-words text-sm font-medium text-text-main transition-colors group-hover:text-accent">
-                                                                    {problema.title}
-                                                                </span>
-                                                                <SolvedProblemBadge isSolved={isProblemSolved(problema)} />
-                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getDifficultyStyle(problema.difficulty)}`}>
-                                                                    {problema.difficulty}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="flex items-center gap-1 text-xs font-bold text-easy">
-                                                                    <Star className="w-3 h-3 fill-easy" />
-                                                                    {problema.xp_reward} XP
-                                                                </div>
-                                                                <ChevronRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
-                                                            </div>
-                                                        </Link>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-xs text-muted italic px-3 py-1">Nicio problemă adăugată.</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-                </ProblemResults>
-            </div>
-        </div>
-    );
+  return <div className="flex h-full min-w-0 flex-col">
+    <TopHeader title={title} />
+    <main className="min-w-0 flex-1 overflow-y-auto p-4 pb-10 sm:p-6">
+      <div className="mx-auto w-full min-w-0 max-w-5xl">
+        <CurriculumBreadcrumbs grade={grade} section={sectionName} />
+        <Link to={sectionName ? `/probleme/clasa/${gradeId}` : '/probleme'} className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />{sectionName ? 'Înapoi la clasă' : 'Înapoi la clase'}</Link>
+        {loading ? <div role="status" className="flex justify-center gap-3 py-16 text-muted"><Loader2 className="h-6 w-6 animate-spin text-accent" />Se încarcă programa…</div>
+          : error ? <div role="alert" className="rounded-2xl border border-hard/25 bg-hard/10 p-5 text-hard"><p>{error}</p><button onClick={curriculum.retry} className="mt-4 min-h-11 font-bold underline">Încearcă din nou</button></div>
+          : !grade ? <p className="rounded-2xl border border-border p-6 text-muted">Clasa nu a fost găsită.</p>
+          : <>
+            <h1 className="break-words text-2xl font-bold text-text-main sm:text-3xl">{title}</h1>
+            <p className="mt-2 text-muted">Alege un capitol și exersează pas cu pas.</p>
+            <section aria-label={personal ? 'Progres general' : 'Probleme disponibile'} className="mt-6">
+              <Link to={`/probleme/toate?${archiveParams}`} className="group block rounded-2xl border border-border bg-ink p-5 transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-accent sm:p-6">
+                <h2 className="mb-3 font-bold text-text-main group-hover:text-accent">{personal ? 'Progres general' : 'Probleme disponibile'}</h2>
+                <CurriculumProgress total={total} solved={solved} personal={personal} label={`Progres ${title}`} />
+                <span className="mt-4 flex items-center justify-between gap-3 text-sm font-bold text-accent"><span>Vezi toate problemele {sectionName ? 'din secțiune' : 'clasei'}</span><ArrowRight className="h-5 w-5 shrink-0" aria-hidden="true" /></span>
+              </Link>
+              {!personal && <p className="mt-3 text-sm text-muted"><Link to="/login" className="font-bold text-accent hover:underline">Intră în cont</Link> pentru a-ți urmări progresul.</p>}
+            </section>
+            {chapters.length === 0 ? <p className="mt-8 rounded-2xl border border-dashed border-border p-6 text-muted">Nu există capitole adăugate încă.</p>
+              : <div className="mt-8 space-y-8">{[...sections].map(([section, rows]) => <section key={section} aria-label={section}>
+                <h2 className="mb-4 break-words text-sm font-bold uppercase tracking-wider text-accent">{section}</h2>
+                <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">{rows.map((chapter) => {
+                  const count = Number(chapter.total_problem_count);
+                  const done = Number(chapter.solved_problem_count || 0);
+                  const completed = personal && count > 0 && count === done;
+                  return <Link key={chapter.chapter_id} to={`/probleme/capitol/${chapter.chapter_id}`} className={`group flex min-w-0 flex-col rounded-2xl border ${completed ? 'border-easy/40' : 'border-border'} bg-ink p-5 transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-accent`}>
+                    <div className="mb-5 flex items-start gap-3"><BookOpen className="mt-1 h-5 w-5 shrink-0 text-accent" /><h3 className="min-w-0 flex-1 break-words text-lg font-bold text-text-main group-hover:text-accent">{chapter.title}</h3><ArrowRight className="mt-1 h-5 w-5 shrink-0 text-muted group-hover:text-accent" /></div>
+                    <div className="mt-auto"><CurriculumProgress total={count} solved={done} personal={personal && count > 0} label={`Progres ${chapter.title}`} /></div>
+                    {completed && <span className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-easy"><CheckCircle2 className="h-4 w-4" />Capitol complet</span>}
+                    {count === 0 && <span className="mt-3 text-xs font-bold text-muted">În curând</span>}
+                  </Link>;
+                })}</div>
+              </section>)}</div>}
+          </>}
+      </div>
+    </main>
+  </div>;
 }

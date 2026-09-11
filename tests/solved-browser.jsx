@@ -28,6 +28,7 @@ function Fixture() {
     <Routes>
       <Route path="/probleme/toate" element={<ToateProblemele />} /><Route path="/probleme" element={<Probleme />} />
       <Route path="/probleme/clasa/:gradeId" element={<Capitole />} /><Route path="/probleme/capitol/:chapterId" element={<ProblemeSectiune />} />
+      <Route path="/probleme/clasa/:gradeId/sectiune/:sectionName" element={<Capitole />} />
       <Route path="/rezolvare/:id" element={<Practice />} />
       <Route path="/related" element={<RelatedProblems problems={fixtureProblems} gradeId={1} section="Bazele programării" />} />
       <Route path="/assignment" element={<AssignmentProblemList problems={fixtureProblems} solvedIds={user ? solvedProblemIds(statuses) : undefined} />} />

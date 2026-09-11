@@ -79,7 +79,7 @@ export default function Probleme() {
         <div className="flex flex-col h-full w-full">
             <TopHeader title="Probleme" />
             
-            <div className="flex w-full flex-1 flex-col items-center overflow-y-auto p-4 sm:p-6">
+            <div className="isolate flex w-full flex-1 flex-col items-center overflow-y-auto p-4 sm:p-6">
                 <div className="w-full max-w-7xl pb-10">
                     
                     <div className="mb-8">

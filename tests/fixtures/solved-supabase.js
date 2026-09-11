@@ -14,6 +14,20 @@ export function simulateAccepted(id) {
   else statuses.push({ user_id: 'fixture-user', problem_id: Number(id), solved: true });
 }
 export const supabase = {
+  rpc(name, { p_grade_id, p_chapter_id }) {
+    if (name !== 'get_problem_curriculum') throw new Error('Unexpected RPC');
+    const query = {
+      range() { return query; }, abortSignal() { return query; },
+      async then(resolve) {
+        requests.push({ table: name, columns: '', filters: [] });
+        resolve({ error: null, data: chapters.filter((chapter) => (!p_grade_id || chapter.grade_id === p_grade_id) && (!p_chapter_id || chapter.id === p_chapter_id)).map((chapter) => {
+          const problems = fixtureProblems.filter((problem) => problem.chapter_id === chapter.id);
+          return { ...chapter, chapter_id: chapter.id, grade_name: tables.grades[0].name, total_problem_count: problems.length, solved_problem_count: problems.filter((problem) => statuses.some((status) => status.user_id === 'fixture-user' && status.problem_id === problem.id && status.solved === true)).length };
+        }) });
+      },
+    };
+    return query;
+  },
   from(table) {
     let columns = '', options = {}, filters = [], start = 0, end = Infinity, single = false;
     const query = {

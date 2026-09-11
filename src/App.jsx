@@ -36,6 +36,8 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const TheoryDev = import.meta.env.VITE_ENABLE_THEORY_DEV_TOOLS === 'true'
+  ? lazy(() => import('./pages/TheoryDev')) : null;
 
 function RouteFallback() {
   return (
@@ -63,6 +65,7 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          {TheoryDev && <Route path="/dev/teorie" element={<TheoryDev />} />}
           <Route path="/login" element={user ? <Navigate to={authenticatedDestination} replace /> : <Auth initialMode="login" />} />
           <Route path="/register" element={user ? <Navigate to={authenticatedDestination} replace /> : <Auth initialMode="register" />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -86,7 +89,7 @@ export default function App() {
             <Route path="/probleme/clasa/:gradeId" element={<Capitole />} />
             <Route path="/probleme/capitol/:chapterId" element={<ProblemeSectiune />} />
             <Route path="/probleme/toate" element={<ToateProblemele />} />
-            <Route path="/probleme/clasa/:gradeId/sectiune/:sectionName" element={<ProblemeSectiune />} />
+            <Route path="/probleme/clasa/:gradeId/sectiune/:sectionName" element={<Capitole />} />
 
             <Route path="/rezolvare/:id" element={<RezolvareProblema />} />
             <Route path="/scoruri" element={<Scoruri />} />
