@@ -1,3 +1,4 @@
+import { executionVerdict, safeErrorDetails, type Verdict } from "./verdict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // ======================================================
@@ -347,7 +348,9 @@ async function handleSubmit(
 	const respond = (
 		data: unknown,
 		status = 200
-	) => jsonResponse(data, status, request);
+	) => jsonResponse(status >= 500 || status === 429
+		? { status: "internal_error", verdict: "internal_error", error: "A apărut o eroare la evaluarea soluției." }
+		: data, status, request);
 
 	try {
 
@@ -615,6 +618,8 @@ async function handleSubmit(
 		// 8. Executăm testele
 		// ==================================================
 
+		let failure: Verdict | null = null;
+		let errorDetails: string | null = null;
 		const testResults: Array<{
 			passed: boolean;
 		}> = [];
@@ -690,6 +695,10 @@ async function handleSubmit(
 
 			if (!execution.success) {
 
+				if (!failure || failure === "wrong_answer" || execution.verdict === "internal_error") {
+					failure = execution.verdict;
+					errorDetails = safeErrorDetails(execution.verdict, execution.output);
+				}
 				testResults.push({
 					passed: false,
 				});
@@ -732,7 +741,7 @@ async function handleSubmit(
 		const finalStatus =
 			accepted
 				? "accepted"
-				: "wrong_answer";
+				: failure || "wrong_answer";
 
 		// ==================================================
 		// 10. Salvăm submission + progres + XP
@@ -870,6 +879,8 @@ async function handleSubmit(
 			status:
 				finalStatus,
 
+			verdict: finalStatus,
+			errorDetails,
 			passedTests,
 			totalTests,
 			testResults,
@@ -924,6 +935,7 @@ async function executePython(
 	input: string
 ): Promise<{
 	success: boolean;
+	verdict: Verdict;
 	output: string;
 	status: string;
 	time: string | null;
@@ -985,10 +997,11 @@ async function executePython(
 	if (!result) {
 		return {
 			success: false,
+			verdict: "internal_error",
 			output:
-				"Execuția a depășit timpul maxim.",
+				"A apărut o eroare la evaluarea soluției.",
 			status:
-				"Time Limit Exceeded",
+				"Internal Error",
 			time: null,
 			memory: null,
 		};
@@ -998,6 +1011,7 @@ async function executePython(
 
 		return {
 			success: true,
+			verdict: "accepted",
 
 			output:
 				result.stdout ?? "",
@@ -1022,6 +1036,7 @@ async function executePython(
 
 	return {
 		success: false,
+		verdict: executionVerdict(result),
 
 		output:
 			errorOutput,

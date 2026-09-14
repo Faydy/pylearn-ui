@@ -28,6 +28,7 @@ async function setup() {
   await db.exec(economy.slice(economy.indexOf('create or replace function public.guard_profile_economy()'), economy.indexOf('create or replace function public.buy_avatar(')));
   await db.exec(await read('migrations/202609040004_activity_calendar_and_streaks.sql'));
   await db.exec(migration);
+  await db.exec(await read('migrations/202609140001_submission_verdicts.sql'));
   const def = async (name) => (await row('select pg_get_functiondef(oid) as definition from pg_proc where proname=$1', [name])).definition;
   installedSubmission = await def('record_problem_submission');
   installedStreak = await def('calculate_pylearn_current_streak');
@@ -132,12 +133,17 @@ await test('PostgreSQL migration and progression regressions', async (t) => {
       await at('2026-09-09T12:00:00Z');
       assert.equal((await submit(1)).first_solve, false);
       assert.equal((await submit(2, 'wrong_answer')).xp_awarded, 0);
-      assert.equal((await submit(2, 'runtime_error')).xp_awarded, 0);
+      for (const verdict of ['runtime_error', 'compile_error', 'time_limit', 'memory_limit', 'internal_error']) {
+        const result = await submit(2, verdict);
+        assert.equal(result.xp_awarded, 0);
+        assert.equal(result.first_solve, false);
+      }
+      assert.equal((await row('select solved from user_problem_status where problem_id=2')).solved, false);
       assert.deepEqual(await profile(), before);
       assert.deepEqual(await activity(), beforeActivity);
       assert.deepEqual(await row('select solved_at::text from user_problem_status where problem_id=1'), solvedAt);
       assert.equal(await effective(), 0);
-      assert.equal((await row('select count(*)::int as n from submissions')).n, 4);
+      assert.equal((await row('select count(*)::int as n from submissions')).n, 8);
       assert.equal((await row('select attempts_count from user_problem_status where problem_id=1')).attempts_count, 2);
     });
     await t.test('Worker-compatible six-argument call and service-only grants', async () => {

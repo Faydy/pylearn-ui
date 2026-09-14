@@ -1,3 +1,4 @@
+import { submissionLabel, submissionLabels } from "../utils/submissionVerdicts";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -254,6 +255,8 @@ export default function RezolvareProblema() {
     setIsSubmitting(true);
     setActiveTab('rezultate');
     setSubmitResult(null);
+    setOutput('');
+    setHasError(false);
 
     try {
         const {
@@ -293,18 +296,20 @@ export default function RezolvareProblema() {
 
         if (!response.ok) {
             setSubmitResult({
-                status: 'error',
-                error: getApiErrorMessage(
-                    response,
-                    data,
-                    'Eroare necunoscută la trimitere.',
-                ),
+                status: response.status >= 500 || data?.verdict === 'internal_error' ? 'internal_error' : 'error',
+                error: response.status >= 500 ? 'A apărut o eroare la evaluarea soluției.' : getApiErrorMessage(response, data, 'Eroare la trimitere.'),
             });
 
             return;
         }
 
+        const verdict = data.verdict || data.status;
+        data.status = Object.hasOwn(submissionLabels, verdict) ? verdict : "internal_error";
         setSubmitResult(data);
+        if (['runtime_error', 'compile_error', 'time_limit', 'memory_limit', 'internal_error'].includes(data.status)) {
+            setHasError(true);
+            setOutput([submissionLabel(data.status), data.errorDetails].filter(Boolean).join('\n\n'));
+        }
 
         setCanViewSubmissions(true);
         await loadProblemSubmissions();
@@ -320,11 +325,11 @@ export default function RezolvareProblema() {
             }
         }
 
-    } catch (err) {
+    } catch {
         setSubmitResult({
-            status: 'error',
+            status: 'internal_error',
             error:
-                `Eroare de conexiune: ${err.message}`
+                'A apărut o eroare la evaluarea soluției.'
         });
 
     } finally {
@@ -619,9 +624,9 @@ export default function RezolvareProblema() {
                                             <p className="text-hard/90">{submitResult.error}</p>
                                         ) : (
                                             <div className="space-y-2">
-                                                <div className={`font-bold ${submitResult.status === 'accepted' ? 'text-easy' : 'text-hard'}`}>
-                                                    {submitResult.status === 'accepted' ? '✓ Acceptat' : `✗ ${submitResult.status}`}
-                                                    {' — '}{submitResult.passedTests}/{submitResult.totalTests} teste trecute
+                                                <div className={`font-bold ${submitResult.status === 'accepted' ? 'text-easy' : submitResult.status === 'time_limit' ? 'text-amber-500' : 'text-hard'}`}>
+                                                    {submissionLabel(submitResult.status)}
+                                                    {Number.isInteger(submitResult.totalTests) && <> — {submitResult.passedTests}/{submitResult.totalTests} teste trecute</>}
                                                 </div>
                                                 {submitResult.status === 'accepted' && submitResult.firstSolve && (
                                                     <div className="rounded-xl border border-easy/20 bg-easy/10 p-3 text-sm font-bold text-easy">
@@ -632,12 +637,10 @@ export default function RezolvareProblema() {
                                                         {submitResult.leveledUp && <p className="mt-2">Ai ajuns la nivelul {submitResult.newLevel}. <Link to="/shop" className="underline decoration-accent underline-offset-2 hover:text-text-main">Vezi Shop-ul</Link></p>}
                                                     </div>
                                                 )}
-                                                {submitResult.testResults.map((t, i) => (
-                                                    <div key={i} className={`flex items-center gap-2 text-xs ${t.passed ? 'text-easy' : 'text-hard'}`}>
-                                                        {t.passed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                                        Test {i + 1}: {t.passed ? 'corect' : 'greșit'}
-                                                    </div>
-                                                ))}
+                                                {['runtime_error', 'compile_error'].includes(submitResult.status) && submitResult.errorDetails && (
+                                                    <pre className="whitespace-pre-wrap break-words text-sm text-hard">{submitResult.errorDetails}</pre>
+                                                )}
+                                                {submitResult.status === 'internal_error' && <p className="text-hard">A apărut o eroare la evaluarea soluției.</p>}
                                             </div>
                                         )
                                     ) : (

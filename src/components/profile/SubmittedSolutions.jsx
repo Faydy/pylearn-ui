@@ -1,3 +1,4 @@
+import { submissionLabel } from '../../utils/submissionVerdicts';
 import Editor from '@monaco-editor/react';
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, Clock3, Code2, Cpu, Loader2, LockKeyhole, MemoryStick, Send, TriangleAlert, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -20,33 +21,41 @@ function formatSubmittedAt(value) {
 }
 
 function getSubmissionStatus(value) {
-  const status = value?.toLowerCase();
+  const originalStatus = typeof value === 'string' ? value.toLowerCase() : '';
+  const status = ({ tle: 'time_limit', time_limit_exceeded: 'time_limit', memory_limit_exceeded: 'memory_limit' })[originalStatus] || originalStatus;
+  const label = submissionLabel(status);
 
   if (status === 'accepted') {
-    return { label: 'Acceptată', classes: 'border-easy/30 bg-easy/10 text-easy', Icon: CheckCircle2 };
+    return { label, classes: 'border-easy/30 bg-easy/10 text-easy', Icon: CheckCircle2 };
   }
 
   if (status === 'wrong_answer') {
-    return { label: 'Răspuns greșit', classes: 'border-hard/30 bg-hard/10 text-hard', Icon: XCircle };
+    return { label, classes: 'border-hard/30 bg-hard/10 text-hard', Icon: XCircle };
+  }
+
+  if (status === 'internal_error') {
+    return { label, classes: 'border-hard/30 bg-hard/10 text-hard', Icon: TriangleAlert };
   }
 
   if (status === 'runtime_error') {
-    return { label: 'Eroare la execuție', classes: 'border-hard/30 bg-hard/10 text-hard', Icon: TriangleAlert };
+    return { label, classes: 'border-hard/30 bg-hard/10 text-hard', Icon: TriangleAlert };
   }
 
   if (status === 'compile_error') {
-    return { label: 'Eroare de compilare', classes: 'border-hard/30 bg-hard/10 text-hard', Icon: TriangleAlert };
+    return { label, classes: 'border-hard/30 bg-hard/10 text-hard', Icon: TriangleAlert };
   }
 
-  if (status === 'time_limit_exceeded') {
-    return { label: 'Limită de timp depășită', classes: 'border-medium/30 bg-medium/10 text-medium', Icon: Clock3 };
+  if (status === 'time_limit') {
+    return { label, classes: 'border-medium/30 bg-medium/10 text-medium', Icon: Clock3 };
   }
 
-  if (status === 'memory_limit_exceeded') {
-    return { label: 'Limită de memorie depășită', classes: 'border-medium/30 bg-medium/10 text-medium', Icon: MemoryStick };
+  if (status === 'memory_limit') {
+    return { label, classes: 'border-medium/30 bg-medium/10 text-medium', Icon: MemoryStick };
   }
 
-  return { label: 'Trimisă', classes: 'border-border bg-background text-muted', Icon: Send };
+  if (status === 'pending') return { label: 'Trimisă', classes: 'border-border bg-background text-muted', Icon: Send };
+
+  return { label, classes: 'border-hard/30 bg-hard/10 text-hard', Icon: TriangleAlert };
 }
 
 function SubmissionDetails({ submission }) {
