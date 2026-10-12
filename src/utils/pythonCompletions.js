@@ -1,4 +1,4 @@
-const BUILT_INS = [
+export const BUILT_INS = [
     ['print', 'Afișează valori în consolă.'],
     ['input', 'Citește o linie de la intrarea standard.'],
     ['int', 'Convertește o valoare într-un număr întreg.'],
@@ -25,13 +25,13 @@ const BUILT_INS = [
     ['all', 'Verifică dacă toate elementele au valoare logică adevărată.'],
 ];
 
-const KEYWORDS = [
+export const KEYWORDS = [
     'if', 'elif', 'else', 'for', 'while', 'def', 'return', 'break', 'continue',
     'import', 'from', 'as', 'in', 'not', 'and', 'or', 'True', 'False', 'None',
     'try', 'except', 'finally', 'with', 'class', 'pass',
 ];
 
-const SNIPPETS = [
+export const SNIPPETS = [
     ['for', 'for ${1:i} in range(${2:n}):\n\t${3:pass}', 'Buclă for cu range.'],
     ['if', 'if ${1:condition}:\n\t${2:pass}', 'Bloc condițional if.'],
     ['while', 'while ${1:condition}:\n\t${2:pass}', 'Buclă while.'],

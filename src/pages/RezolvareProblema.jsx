@@ -2,7 +2,7 @@ import { submissionLabel, submissionLabels } from "../utils/submissionVerdicts";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import Editor from '@monaco-editor/react';
+import Editor from '../components/ResponsiveCodeEditor';
 import {
     Loader2, Star, ChevronRight, Share2, Clock,
     FileText, SlidersHorizontal, Lightbulb, Play, Send,
@@ -70,7 +70,10 @@ export default function RezolvareProblema() {
         const completionProvider = registerPythonCompletionProvider(monaco);
         // onMount runs once per editor, not on re-renders or problem-id changes.
         // Tie the registration to Monaco's lifetime, including React unmounts.
-        editor.onDidDispose(() => completionProvider.dispose());
+        editor.onDidDispose(() => {
+            completionProvider.dispose();
+            if (editorRef.current === editor) editorRef.current = null;
+        });
     }, []);
 
     const loadProblemSubmissions = useCallback(async ({ offset = 0, append = false } = {}) => {
@@ -555,6 +558,7 @@ export default function RezolvareProblema() {
                                 value={code}
                                 onChange={(value) => setCode(value)}
                                 onMount={handleEditorMount}
+                                autocompleteEnabled={autocompleteEnabled}
                                 options={{
                                     ...pythonEditorOptions,
                                     // OFF stops automatic completion; Ctrl+Space can still

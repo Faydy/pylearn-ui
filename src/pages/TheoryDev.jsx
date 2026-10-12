@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
+import Editor from '../components/ResponsiveCodeEditor';
 import { ArrowLeft, Copy, RotateCcw } from 'lucide-react';
 import TopHeader from '../components/MainArea/TopHeader';
 import TheoryPreview from '../components/theory/TheoryPreview';

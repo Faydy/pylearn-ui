@@ -1,5 +1,5 @@
 import { submissionLabel } from '../../utils/submissionVerdicts';
-import Editor from '@monaco-editor/react';
+import Editor from '../ResponsiveCodeEditor';
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, Clock3, Code2, Cpu, Loader2, LockKeyhole, MemoryStick, Send, TriangleAlert, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
