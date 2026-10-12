@@ -16,7 +16,7 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const normalizedEmail = email.trim();
+    const normalizedEmail = (fromProfile ? user.email || '' : email).trim();
 
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       setMessage({ text: 'Introdu o adresă de email validă.', type: 'error' });
@@ -32,7 +32,9 @@ export default function ForgotPassword() {
 
       if (error) throw error;
       setMessage({
-        text: 'Dacă există un cont asociat acestei adrese, vei primi în scurt timp un email cu instrucțiuni pentru resetarea parolei. Verifică și folderul Spam.',
+        text: fromProfile
+          ? `Am solicitat trimiterea linkului de modificare a parolei la ${normalizedEmail}. Verifică și folderul Spam.`
+          : 'Dacă există un cont asociat acestei adrese, vei primi în scurt timp un email cu instrucțiuni pentru resetarea parolei. Verifică și folderul Spam.',
         type: 'success',
       });
     } catch (error) {
@@ -48,7 +50,7 @@ export default function ForgotPassword() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
           <span className="mb-2 block text-sm font-bold text-text-main">Email</span>
-          <span className="relative block"><Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nume@exemplu.ro" autoComplete="email" required className="w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-text-main outline-none transition-colors focus:border-accent" /></span>
+          <span className="relative block"><Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input type="email" value={fromProfile ? user.email || '' : email} readOnly={fromProfile} onChange={(event) => setEmail(event.target.value)} placeholder="nume@exemplu.ro" autoComplete="email" required className="w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-text-main outline-none transition-colors focus:border-accent" /></span>
         </label>
         <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-bold text-ink transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50">
           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
