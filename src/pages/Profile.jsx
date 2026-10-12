@@ -1,6 +1,6 @@
-import { AlertTriangle, ArrowRight, Loader2, LogOut, Mail, Save, ShoppingBag, User, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, KeyRound, Loader2, LogOut, Mail, Save, ShoppingBag, User, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import ProfileActivityCalendar from '../components/profile/ProfileActivityCalendar';
 import ProfileHeader from '../components/profile/ProfileHeader';
@@ -15,6 +15,7 @@ const SUBMISSIONS_PREVIEW_SIZE = 5;
 const PUBLIC_SUBMISSIONS_PAGE_SIZE = 12;
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user, refreshAuth } = useAuth();
   const todayKey = useBucharestToday();
   const previousTodayKey = useRef(todayKey);
@@ -23,6 +24,8 @@ export default function Profile() {
   const viewedUserId = ownProfile ? user?.id : routeUserId;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
   const [userAuth, setUserAuth] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [publicProfile, setPublicProfile] = useState(null);
@@ -120,7 +123,12 @@ export default function Profile() {
       try {
         if (ownProfile) {
           const { data: authData, error: authError } = await supabase.auth.getUser();
-          if (authError) throw authError;
+          if (authError) {
+            if (authError.code === 'user_not_found' || authError.message?.includes('User from sub claim in JWT does not exist')) {
+              throw new Error('Contul acestei sesiuni nu mai există. Deconectează-te pentru a folosi un alt cont.');
+            }
+            throw authError;
+          }
           if (!authData.user) throw new Error('Nu ești autentificat.');
 
           let { data: ownRecord, error: ownProfileError } = await supabase
@@ -255,13 +263,29 @@ export default function Profile() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError('');
+    try {
+      // The SDK also clears local tokens when the server reports a deleted
+      // user or an invalid JWT (401/403/404).
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+      navigate('/login', { replace: true });
+    } catch {
+      setLogoutError('Nu am putut încheia sesiunea. Verifică conexiunea și încearcă din nou.');
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   if (loading) return <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center lg:min-h-[calc(100dvh-4rem)]"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>;
 
   if (profileError || !publicProfile) {
-    return <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8"><section className="rounded-2xl border border-hard/20 bg-hard/10 p-6 text-center sm:p-8"><AlertTriangle className="mx-auto h-8 w-8 text-hard" /><h1 className="mt-4 text-xl font-bold text-text-main">Utilizatorul nu a fost găsit.</h1><p className="mt-2 text-sm text-muted">{profileError || 'Profilul nu este disponibil.'}</p><Link to="/scoruri" className="mt-5 inline-flex font-bold text-accent transition-colors hover:text-text-main">Înapoi la clasament</Link></section></div>;
+    return <div className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8"><section className="rounded-2xl border border-hard/20 bg-hard/10 p-6 text-center sm:p-8"><AlertTriangle className="mx-auto h-8 w-8 text-hard" /><h1 className="mt-4 text-xl font-bold text-text-main">Utilizatorul nu a fost găsit.</h1><p className="mt-2 text-sm text-muted">{profileError || 'Profilul nu este disponibil.'}</p>
+      {ownProfile && user && <button type="button" onClick={handleLogout} disabled={loggingOut} className="mx-auto mt-5 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-hard/40 px-5 py-2.5 font-bold text-hard transition-colors hover:bg-hard/10 disabled:opacity-50">{loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{loggingOut ? 'Se deconectează...' : 'Ieși din cont'}</button>}
+      {logoutError && <p role="alert" className="mt-3 text-sm text-hard">{logoutError}</p>}
+      <Link to="/scoruri" className="mt-5 inline-flex font-bold text-accent transition-colors hover:text-text-main">Înapoi la clasament</Link></section></div>;
   }
 
   return (
@@ -321,7 +345,15 @@ export default function Profile() {
           </section>
           <div className="space-y-6">
             <ProfileActivityCalendar userId={viewedUserId} />
-            <section className="rounded-2xl border border-border bg-ink p-5 sm:p-6"><h2 className="text-lg font-bold text-text-main">Contul meu</h2><p className="mt-2 text-sm text-muted">Deloghează-te în siguranță de pe acest dispozitiv.</p><button type="button" onClick={handleLogout} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-hard/40 py-2.5 font-bold text-hard transition-colors hover:bg-hard/10"><LogOut className="h-4 w-4" />Ieși din cont</button></section>
+            <section className="rounded-2xl border border-border bg-ink p-5 sm:p-6">
+              <h2 className="text-lg font-bold text-text-main">Contul meu</h2>
+              <p className="mt-2 text-sm text-muted">Modifică parola printr-un link trimis pe email sau deconectează-te de pe acest dispozitiv.</p>
+              <Link to="/forgot-password" state={{ fromProfile: true }} className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 font-bold text-text-main transition-colors hover:border-accent hover:text-accent focus-visible:outline-accent">
+                <KeyRound className="h-4 w-4" aria-hidden="true" />Modifică parola
+              </Link>
+              <button type="button" onClick={handleLogout} disabled={loggingOut} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-hard/40 py-2.5 font-bold text-hard transition-colors hover:bg-hard/10 disabled:opacity-50">{loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{loggingOut ? 'Se deconectează...' : 'Ieși din cont'}</button>
+              {logoutError && <p role="alert" className="mt-3 text-sm text-hard">{logoutError}</p>}
+            </section>
           </div>
         </div>
       )}

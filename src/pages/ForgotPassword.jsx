@@ -4,10 +4,13 @@ import { Link, useLocation } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import { supabase } from '../supabaseClient';
 import { getAuthErrorMessage } from '../utils/auth';
+import { useAuth } from '../AuthContext';
 
 export default function ForgotPassword() {
   const location = useLocation();
-  const [email, setEmail] = useState('');
+  const { user } = useAuth();
+  const fromProfile = Boolean(location.state?.fromProfile && user);
+  const [email, setEmail] = useState(() => fromProfile ? user.email || '' : '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(() => location.state?.message || { text: '', type: '' });
 
@@ -40,7 +43,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <AuthLayout title="Ți-ai uitat parola?" subtitle="Introdu adresa de email asociată contului tău și îți vom trimite un link pentru resetarea parolei.">
+    <AuthLayout title={fromProfile ? 'Modifică parola' : 'Ți-ai uitat parola?'} subtitle={fromProfile ? 'Îți vom trimite un link pe email pentru a alege o parolă nouă.' : 'Introdu adresa de email asociată contului tău și îți vom trimite un link pentru resetarea parolei.'}>
       {message.text && <div className={`mb-5 rounded-xl border p-3 text-sm font-medium ${message.type === 'error' ? 'border-hard/20 bg-hard/10 text-hard' : 'border-easy/20 bg-easy/10 text-easy'}`}>{message.text}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block">
@@ -52,7 +55,7 @@ export default function ForgotPassword() {
           {loading ? 'Se trimite...' : 'Trimite linkul de resetare'}
         </button>
       </form>
-      <Link to="/login" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />Înapoi la autentificare</Link>
+      <Link to={fromProfile ? '/profil' : '/login'} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-text-main"><ArrowLeft className="h-4 w-4" />{fromProfile ? 'Înapoi la profil' : 'Înapoi la autentificare'}</Link>
     </AuthLayout>
   );
 }
