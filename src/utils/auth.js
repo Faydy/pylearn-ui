@@ -1,11 +1,20 @@
 const PENDING_VERIFICATION_EMAIL_KEY = 'pylearn-pending-verification-email';
 
+export function isExistingSignup(data) {
+  // Supabase can hide an already-confirmed account behind a successful signup
+  // response with no identities. Missing identities alone are not this signal.
+  return !data?.session
+    && Array.isArray(data?.user?.identities)
+    && data.user.identities.length === 0;
+}
+
 export function getAuthErrorMessage(error, fallback = 'A apărut o eroare. Încearcă din nou.') {
   const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
 
   if (message.includes('invalid login credentials')) return 'Email sau parolă incorectă.';
   if (message.includes('email not confirmed') || message.includes('email not verified')) return 'Adresa ta de email nu a fost încă verificată.';
-  if (message.includes('user already registered') || message.includes('already been registered')) return 'Există deja un cont asociat acestei adrese de email.';
+  if (code === 'user_already_exists' || code === 'email_exists' || message.includes('user already registered') || message.includes('already been registered')) return 'Există deja un cont cu această adresă de email. Autentifică-te sau resetează parola dacă ai uitat-o.';
   if (message.includes('password should be at least') || message.includes('password must be at least')) return 'Parola trebuie să aibă minimum 8 caractere.';
   if (message.includes('different from the old password') || message.includes('same as the old password')) return 'Parola nouă trebuie să fie diferită de parola anterioară.';
   if (message.includes('reauthentication') || message.includes('nonce')) return 'Sesiunea de securitate a expirat. Solicită un link nou de resetare.';

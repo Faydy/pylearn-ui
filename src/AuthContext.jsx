@@ -27,11 +27,17 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let isMounted = true;
+    let activeUserId;
+    let syncVersion = 0;
 
     const syncAuthState = async (session) => {
       if (!isMounted) return;
 
-      setLoading(true);
+      const version = ++syncVersion;
+      // USER_UPDATED / token refresh must not unmount the current page while
+      // its password update or other authenticated action is still running.
+      if (session?.user && session.user.id !== activeUserId) setLoading(true);
+      activeUserId = session?.user?.id;
       setUser(session?.user || null);
 
       if (!session?.user) {
@@ -42,12 +48,12 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const nextProfile = await fetchProfileRecord(session.user.id);
-        if (isMounted) setProfile(nextProfile);
+        if (isMounted && version === syncVersion) setProfile(nextProfile);
       } catch (error) {
         console.error('Eroare la încărcarea profilului:', error.message);
-        if (isMounted) setProfile(null);
+        if (isMounted && version === syncVersion) setProfile(null);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted && version === syncVersion) setLoading(false);
       }
     };
 

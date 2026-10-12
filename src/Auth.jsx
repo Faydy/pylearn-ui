@@ -3,7 +3,7 @@ import { FolderGit, Loader2, Lock, Mail } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from './components/auth/AuthLayout';
 import { supabase } from './supabaseClient';
-import { getAuthErrorMessage, isUnverifiedEmailError, rememberPendingVerificationEmail } from './utils/auth';
+import { getAuthErrorMessage, isExistingSignup, isUnverifiedEmailError, rememberPendingVerificationEmail } from './utils/auth';
 
 export default function Auth({ initialMode = 'login' }) {
   const navigate = useNavigate();
@@ -47,6 +47,10 @@ export default function Auth({ initialMode = 'login' }) {
       });
       if (error) throw error;
 
+      if (isExistingSignup(data)) {
+        throw Object.assign(new Error('User already registered'), { code: 'user_already_exists' });
+      }
+
       if (data.session) {
         navigate('/creare-profil', { replace: true });
         return;
@@ -82,7 +86,7 @@ export default function Auth({ initialMode = 'login' }) {
 
   return (
     <AuthLayout title={isLogin ? 'Bine ai revenit!' : 'Creează un cont nou'} subtitle={isLogin ? 'Continuă să înveți și să rezolvi probleme.' : 'Începe-ți călătoria pe PyLearn.'}>
-      {message.text && <div className={`mb-6 rounded-lg border p-3 text-sm font-medium ${message.type === 'error' ? 'border-hard/20 bg-hard/10 text-hard' : 'border-easy/20 bg-easy/10 text-easy'}`}>{message.text}</div>}
+      {message.text && <div role={message.type === 'error' ? 'alert' : 'status'} className={`mb-6 rounded-lg border p-3 text-sm font-medium ${message.type === 'error' ? 'border-hard/20 bg-hard/10 text-hard' : 'border-easy/20 bg-easy/10 text-easy'}`}>{message.text}</div>}
       <form onSubmit={handleAuth} className="flex flex-col gap-4">
         <label className="relative block"><Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" /><input type="email" placeholder="Adresa de email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className="w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-text-main outline-none transition-colors focus:border-accent" required /></label>
         <div>

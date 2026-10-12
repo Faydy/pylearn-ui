@@ -1,5 +1,5 @@
 import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, Lock, TriangleAlert } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import AuthLayout from '../components/auth/AuthLayout';
@@ -22,31 +22,64 @@ export default function ResetPassword() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const passwordSaved = useRef(false);
+  const submitting = useRef(false);
+  const recoveryMarker = useRef(hasRecoveryMarker());
 
   useEffect(() => {
-    if (recoveryStatus === 'success') return undefined;
     let mounted = true;
+    let recoveryEventReceived = false;
 
     const validateRecoverySession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (mounted) setRecoveryStatus(session && (hasRecoveryMarker() || isPasswordRecovery) ? 'valid' : 'invalid');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (mounted && !passwordSaved.current && !recoveryEventReceived) {
+          setRecoveryStatus(!error && session && (recoveryMarker.current || isPasswordRecovery) ? 'valid' : 'invalid');
+        }
+      } catch {
+        if (mounted && !passwordSaved.current && !recoveryEventReceived) setRecoveryStatus('invalid');
+      }
     };
 
-    validateRecoverySession();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      if (event === 'PASSWORD_RECOVERY' && session) setRecoveryStatus('valid');
-      if (event === 'SIGNED_OUT') setRecoveryStatus('invalid');
+      if (!mounted || passwordSaved.current) return;
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        recoveryEventReceived = true;
+        setRecoveryStatus('valid');
+      }
+      if (event === 'SIGNED_OUT') {
+        recoveryEventReceived = true;
+        setRecoveryStatus('invalid');
+      }
     });
+    validateRecoverySession();
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [isPasswordRecovery, recoveryStatus]);
+  }, [isPasswordRecovery]);
+
+  const finishRecovery = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+      navigate('/login', {
+        replace: true,
+        state: { successMessage: 'Parola a fost modificată cu succes.' },
+      });
+    } catch {
+      // The password is already saved. A cleanup error cannot undo that.
+      setMessage({ text: 'Parola a fost modificată, dar deconectarea nu a reușit. Încearcă din nou.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitting.current || passwordSaved.current || recoveryStatus !== 'valid') return;
     if (password.length < 8) {
       setMessage({ text: 'Parola trebuie să aibă minimum 8 caractere.', type: 'error' });
       return;
@@ -56,6 +89,7 @@ export default function ResetPassword() {
       return;
     }
 
+    submitting.current = true;
     setLoading(true);
     setMessage({ text: '', type: '' });
     try {
@@ -68,42 +102,38 @@ export default function ResetPassword() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         if (isSamePasswordError(error)) {
-          const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
-          if (signOutError) throw signOutError;
-
-          navigate('/forgot-password', {
-            replace: true,
-            state: {
-              message: {
-                text: 'Parola nouă trebuie să fie diferită de parola anterioară. Solicită un nou email de resetare.',
-                type: 'error',
-              },
-            },
-          });
+          setMessage({ text: 'Parola nouă trebuie să fie diferită de parola curentă. Alege o altă parolă.', type: 'error' });
           return;
         }
 
         throw error;
       }
 
-      // A recovery session must not remain signed in after the password changes.
-      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
-      if (signOutError) throw signOutError;
-
-      navigate('/login', {
-        replace: true,
-        state: { successMessage: 'Parola a fost modificată cu succes.' },
-      });
+      passwordSaved.current = true;
+      setRecoveryStatus('success');
+      setPassword('');
+      setConfirmation('');
+      await finishRecovery();
     } catch (error) {
       console.error('Eroare la actualizarea parolei:', error.message);
       setMessage({ text: getAuthErrorMessage(error, 'Parola nu a putut fi schimbată. Solicită un link nou.'), type: 'error' });
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
 
   if (recoveryStatus === 'checking') {
     return <AuthLayout title="Se verifică linkul..."><div className="flex justify-center py-8"><Loader2 className="h-7 w-7 animate-spin text-accent" /></div></AuthLayout>;
+  }
+
+  if (recoveryStatus === 'success') {
+    return <AuthLayout title="Parola a fost modificată cu succes.">
+      {message.text && <p role="alert" className="mb-5 text-sm text-hard">{message.text}</p>}
+      <button type="button" onClick={finishRecovery} disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-bold text-ink disabled:opacity-50">
+        {loading && <Loader2 className="h-5 w-5 animate-spin" />}{loading ? 'Se încheie sesiunea...' : 'Continuă la autentificare'}
+      </button>
+    </AuthLayout>;
   }
 
   if (recoveryStatus === 'invalid') {
